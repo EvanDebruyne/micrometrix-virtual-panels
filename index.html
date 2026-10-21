@@ -241,7 +241,7 @@ const PRODUCTS = {
       {t:'See the sensor’s condition', x:'Open <kbd>Scope</kbd> for the live sensor waveform, then tap the <kbd>Flush health</kbd> tile for the sixty-day history; the sensor is graded during each flush.', act:[{g:'sensor',v:'fouling'}], al:'Make the sensor foul'},
       {t:'Cut the cable', x:'A cut cable reads under 4 mA, so the panel shows <kbd>SENSOR FAULT</kbd> and dashes instead of a number, drops the controller to MANUAL and closes the diagnostic relay.', act:[{g:'sensor',v:'none'}], al:'Cut the sensor cable'},
       {t:'Plant stops', x:'With a flow switch on the digital input (<kbd>Config → Inputs & outputs → Digital input 1</kbd>), no flow holds the reading and the dose instead of chasing a still sample.', act:[{g:'sensor',v:'healthy'},{g:'flow',v:'off'}], al:'Open the flow switch'},
-      {t:'Service reminder', x:'Tap the flashing <kbd>CAL DUE</kbd> badge, unlock with the demo's PIN <kbd>0000</kbd>, then <kbd>Mark calibrated</kbd>.', act:[{g:'flow',v:'on'},{id:'bCalDue'}], al:'Make calibration due'},
+      {t:'Service reminder', x:'Tap the flashing <kbd>CAL DUE</kbd> badge, unlock with the demo PIN <kbd>0000</kbd>, then <kbd>Mark calibrated</kbd>.', act:[{g:'flow',v:'on'},{id:'bCalDue'}], al:'Make calibration due'},
       {t:'Take the data with you', x:'Open <kbd>Files</kbd>, then <kbd>Data logging</kbd>, then <kbd>Export data</kbd>, and pick <kbd>Last day</kbd>. The export appears in the file list beside the screen; tap it to read the spreadsheet.'}
     ]
   },
@@ -275,7 +275,7 @@ const PRODUCTS = {
       {t:'Empty titrant bottle', x:'Run again. The pump turns but nothing arrives, and after eight doses that together barely move the reading the titrator stops with <kbd>No response</kbd>.', act:[{g:'bottle',v:'empty'}], al:'Empty the bottle'},
       {t:'Cable cut during a run', x:'The run ends, Home shows <kbd>----</kbd> and <kbd>SENSOR FAULT</kbd>, and Start, Auto and ZERO stay dimmed until the cable is back.', act:[{g:'bottle',v:'full'},{g:'sensor',v:'cut'}], al:'Cut the sensor cable'},
       {t:'Relative and absolute', x:'Tap the yellow <kbd>RELATIVE</kbd> chip on Home to see the absolute reading; tap it again to go back.', act:[{g:'sensor',v:'healthy'}], al:'Repair the cable'},
-      {t:'Service reminder', x:'Tap the flashing <kbd>CAL DUE</kbd> badge, unlock with the demo's PIN <kbd>1234</kbd>, then <kbd>Mark calibrated</kbd>.', act:[{id:'bCalDue'}], al:'Make calibration due'}
+      {t:'Service reminder', x:'Tap the flashing <kbd>CAL DUE</kbd> badge, unlock with the demo PIN <kbd>1234</kbd>, then <kbd>Mark calibrated</kbd>.', act:[{id:'bCalDue'}], al:'Make calibration due'}
     ]
   }
 };
