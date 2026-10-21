@@ -1,0 +1,1233 @@
+<meta charset="utf-8">
+<title>SCM Virtual Panel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap">
+<style>
+/* ---- page around the panel: two themes ---- */
+:root{
+  --pg-bg:#EEF2F6; --pg-panel:#FFFFFF; --pg-text:#18222E; --pg-muted:#5B6878; --pg-line:#D5DCE5;
+  --pg-accent:#0B7A93; --pg-accent-ink:#FFFFFF; --pg-chip:#E3EBF1; --pg-code:#F6F8FA;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --pg-bg:#0E1319; --pg-panel:#151C25; --pg-text:#E6EDF3; --pg-muted:#93A0B0; --pg-line:#28323F;
+  --pg-accent:#22D3EE; --pg-accent-ink:#0B0F14; --pg-chip:#1D2733; --pg-code:#0B0F14;
+}}
+:root[data-theme="dark"]{
+  --pg-bg:#0E1319; --pg-panel:#151C25; --pg-text:#E6EDF3; --pg-muted:#93A0B0; --pg-line:#28323F;
+  --pg-accent:#22D3EE; --pg-accent-ink:#0B0F14; --pg-chip:#1D2733; --pg-code:#0B0F14;
+}
+html,body{height:100%}
+body{margin:0;background:var(--pg-bg);color:var(--pg-text);font-family:Montserrat,"Segoe UI",Arial,sans-serif;font-size:14px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:18px 40px;padding-inline:16px}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin-bottom:12px}
+.head h1{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
+.head .sub{color:var(--pg-muted);font-size:13px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:1000px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stage{position:relative;width:100%;aspect-ratio:800/480;max-width:800px}
+.bezel{position:absolute;inset:0;border-radius:12px;background:#0B0F14;box-shadow:0 0 0 1px var(--pg-line),0 14px 40px -18px rgba(0,0,0,.55);overflow:hidden}
+#dev{position:absolute;left:0;top:0;width:800px;height:480px;transform-origin:0 0;background:#0B0F14;color:#E6EDF3;font-family:Montserrat,"Segoe UI",Arial,sans-serif;user-select:none;-webkit-user-select:none;overflow:hidden;touch-action:manipulation}
+.side{display:flex;flex-direction:column;gap:12px}
+.box{background:var(--pg-panel);border:1px solid var(--pg-line);border-radius:10px;padding:12px 14px}
+.box h2{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--pg-muted);margin:0 0 8px}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
+.row .lab{width:100%;font-size:12px;color:var(--pg-muted)}
+.sc{border:1px solid var(--pg-line);background:var(--pg-chip);color:var(--pg-text);border-radius:999px;padding:5px 11px;font:inherit;font-size:12.5px;cursor:pointer}
+.sc:hover{border-color:var(--pg-accent)}
+.sc.on{background:var(--pg-accent);color:var(--pg-accent-ink);border-color:var(--pg-accent)}
+.sc:focus-visible,.pbtn:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+.pbtn{border:1px solid var(--pg-line);background:var(--pg-panel);color:var(--pg-text);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+.note{font-size:12.5px;color:var(--pg-muted);margin:0}
+.steps{margin:0;padding-left:18px;font-size:13px}
+.steps li{margin:4px 0}
+.steps b{font-weight:600}
+.files{font-size:12.5px}
+.files .f{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid var(--pg-line);cursor:pointer}
+.files .f:first-child{border-top:0}
+.files .f:hover .fn{color:var(--pg-accent)}
+.files .fn{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+.files .fs{color:var(--pg-muted);white-space:nowrap}
+pre.csv{margin:8px 0 0;background:var(--pg-code);border:1px solid var(--pg-line);border-radius:8px;padding:10px;font:11.5px/1.5 ui-monospace,Consolas,monospace;max-height:260px;overflow:auto;white-space:pre}
+.below{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:800px}
+kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);border-radius:4px;padding:0 5px}
+/* ?bare=1: the device alone at the page's top-left - for embedding and for headless screenshots */
+html.bare .head,html.bare .below,html.bare .side{display:none!important}
+html.bare .wrap{padding:0!important;max-width:none!important}
+html.bare .grid{display:block!important}
+html.bare body{background:#0B0F14}
+html.bare .bezel{border-radius:0;box-shadow:none}
+
+/* ---- the device: exact firmware palette and geometry (ui.cpp) ---- */
+#dev *{box-sizing:border-box}
+#dev .abs{position:absolute}
+#dev .c-text{color:#E6EDF3}
+#dev .c-muted{color:#8B98A9}
+#dev .c-faint{color:#3A4656}
+#dev .c-accent{color:#22D3EE}
+#dev .c-good{color:#4ADE80}
+#dev .c-warn{color:#FBBF24}
+#dev .c-crit{color:#F87171}
+#dev .c-info{color:#60A5FA}
+.f14{font-size:14px}.f20{font-size:20px}.f28{font-size:28px}.f32{font-size:32px}.f48{font-size:48px}
+#top{position:absolute;left:0;top:0;width:800px;height:44px;background:#141C26;border-bottom:1px solid #3A4656}
+#top .logo{position:absolute;left:14px;top:5px;width:150px;height:33px;display:block;cursor:pointer}
+#top .brand{position:absolute;left:178px;top:0;line-height:43px;color:#22D3EE;font-size:20px;font-weight:500}
+#top .title{display:none}   /* page name dropped 0.9.56 */
+#top .caldue{position:absolute;top:6px;height:32px;line-height:26px;padding:0 10px;border:2px solid #F87171;border-radius:6px;font-size:20px;font-weight:500;cursor:pointer}
+#top .clock{position:absolute;right:14px;top:0;line-height:43px;color:#8B98A9;font-size:20px;font-variant-numeric:tabular-nums}
+#top .nflush{position:absolute;right:134px;top:0;line-height:43px;color:#8B98A9;font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+#nav{position:absolute;left:0;top:44px;width:110px;height:436px;background:#141C26;border-right:1px solid #3A4656;display:flex;flex-direction:column;justify-content:space-evenly;align-items:center}
+#nav .it{width:94px;height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:10px;color:#8B98A9;cursor:pointer}
+#nav .it svg{width:28px;height:28px;fill:currentColor}
+#nav .it span{font-size:20px}
+#nav .it.on{background:#1B2635;color:#22D3EE}
+#content{position:absolute;left:110px;top:44px;width:690px;height:436px;padding:14px}
+.scr{position:absolute;inset:14px;display:none;flex-direction:column}
+.scr.on{display:flex}
+.card{background:#141C26;border:1px solid #3A4656;border-radius:12px;padding:12px}
+.btn{background:#1B2635;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#E6EDF3;text-align:center}
+.btn:active{background:#131b26}
+.vbtn{background:#1B2635;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.vbtn:active{background:#131b26}
+.vbtn .cap{color:#8B98A9;font-size:20px}
+.vbtn .val{color:#E6EDF3;font-size:32px;font-weight:500}
+.tile{background:#141C26;border:1px solid #3A4656;border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex:1}
+.tile .cap{color:#8B98A9;font-size:20px;white-space:nowrap}
+.tile .val{color:#E6EDF3;font-size:32px;font-weight:500;white-space:nowrap}
+/* SCM */
+#scm{gap:8px}
+#scm .gcard{flex:1;display:flex;flex-direction:column;padding:12px}
+#scm .hdr{height:34px;position:relative}
+#scm .hdr .mode{position:absolute;left:0;top:3px;height:28px;line-height:26px;padding:0 12px;border-radius:14px;border:1px solid #8B98A9;color:#8B98A9;font-size:20px;cursor:pointer}
+#scm .hdr .mode.rel{background:#C9A63A;border-color:#C9A63A;color:#0B0F14;font-weight:500}
+#scm .chip{position:absolute;right:0;top:3px;height:28px;line-height:28px;padding:0 16px;border-radius:14px;color:#0B0F14;font-size:20px;font-weight:500;background:#4ADE80}
+#scm .mid{flex:1;display:flex;align-items:center;justify-content:center;overflow:visible}
+#scm .digits{font-family:Arial,"Helvetica Neue",Helvetica,sans-serif;font-weight:700;font-size:214px;line-height:165px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:#E6EDF3;white-space:nowrap}
+#scm .ftr{height:36px;position:relative}
+#scm .ftr .absl{position:absolute;left:0;top:0;line-height:36px;color:#8B98A9;font-size:20px;white-space:nowrap}
+#scm .ftr .dich{position:absolute;top:4px;height:28px;line-height:26px;padding:0 10px;border-radius:14px;font-size:20px;border:1px solid #8B98A9;color:#8B98A9;display:none;white-space:nowrap}
+#scm .ftr .dich.on{background:#22D3EE;border-color:#22D3EE;color:#0B0F14}
+#scm .ftr .unit{position:absolute;right:0;top:0;line-height:36px;color:#8B98A9;font-size:28px}
+#scm .brow{height:70px;display:flex;gap:10px}
+#scm .brow>*{flex:1;height:100%}
+#scm .crow{height:56px;display:flex;gap:10px}
+#scm .crow>*{flex:1;height:100%;font-size:32px;font-weight:500}
+/* trend */
+#trend{gap:10px}
+.tiles{height:84px;display:flex;gap:10px}
+.tiles .vbtn{flex:1;height:100%}
+#trend .tcard{flex:1;position:relative;padding:12px}
+#chips{position:absolute;left:12px;right:12px;top:12px;height:36px;display:flex;justify-content:center;gap:12px}
+.chipb{height:36px;border-radius:18px;border:2px solid #3A4656;padding:0 16px;display:flex;align-items:center;font-size:20px;color:#3A4656;cursor:pointer;white-space:nowrap;background:transparent}
+.chipb.on{background:#1B2635;color:#E6EDF3}
+.chipb .sw{display:inline-block;width:14px;height:14px;background:#3A4656;margin-right:8px;border-radius:2px}
+.chipb.on .sw{background:var(--sw)}
+#trend canvas,#scope canvas{position:absolute;display:block}
+.axl{position:absolute;font-size:20px;color:#8B98A9;font-variant-numeric:tabular-nums}
+.axx{position:absolute;font-size:20px;color:#E6EDF3;font-variant-numeric:tabular-nums}
+#trend .empty{position:absolute;left:0;right:0;top:50%;text-align:center;color:#3A4656;font-size:28px;transform:translateY(-50%)}
+/* scope */
+#scope{gap:10px}
+#scope .scard{flex:1;position:relative;padding:12px}
+#scope .leg{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:20px;color:#8B98A9}
+#scope .nosig{position:absolute;left:0;right:0;top:40%;text-align:center;font-size:28px;color:#8B98A9}
+#scope .tile.click{cursor:pointer}
+#scope .tile.click:active{background:#1B2635}
+/* files + service */
+.dcard{flex:1;display:flex;flex-direction:column;gap:2px;padding:16px}
+.dcap{color:#22D3EE;font-size:20px;margin-bottom:2px}
+.drow{height:42px;display:flex;align-items:center;justify-content:space-between;font-size:28px}
+.drow .n{color:#8B98A9}
+.drow .v{color:#E6EDF3;white-space:nowrap}
+.status{font-size:20px;color:#8B98A9;min-height:26px;line-height:1.3}
+.frow{height:68px;display:flex;gap:10px;margin-top:10px}
+.frow .btn{flex:1;height:100%;font-size:28px;font-weight:500;color:#0B0F14}
+#service{gap:10px}
+#service .dcard{padding:14px}
+#service .drow{height:36px}
+#service .srow{height:64px;display:flex;gap:10px}
+#service .srow .btn{flex:1;height:100%;font-size:20px;font-weight:500}
+#service .btn.off{opacity:.4;pointer-events:none}
+/* config */
+#config{gap:8px}
+#config{gap:8px}
+#cfgStrip,#fiStrip{height:52px;flex:none;display:none;align-items:center;gap:16px}
+#cfgStrip .btn,#fiStrip .btn{width:150px;height:52px;font-size:28px}
+#cfgStrip .ct,#fiStrip .ct{font-size:28px;color:#E6EDF3}
+#fiMenu{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px}
+#fiMenu .st{font-size:20px;color:#8B98A9;padding:6px 6px 0}
+#fiLogPage,#fiExpPage{flex:1;min-height:0;display:none;flex-direction:column;gap:8px}
+#fiExpList{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:#3A4656 transparent}
+#fiExpList::-webkit-scrollbar{width:6px}
+#fiExpList::-webkit-scrollbar-thumb{background:#3A4656;border-radius:3px}
+#files .dcard{padding:12px}
+#files .drow{height:36px}
+/* the two scrolling lists (menu, group). Thin scrollbar like the firmware's. */
+#cfgMenu,#rows{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:#3A4656 transparent}
+#cfgMenu::-webkit-scrollbar,#rows::-webkit-scrollbar{width:6px}
+#cfgMenu::-webkit-scrollbar-thumb,#rows::-webkit-scrollbar-thumb{background:#3A4656;border-radius:3px}
+.mrow{flex:none;height:62px;background:#1B2635;border:1px solid #3A4656;border-radius:12px;padding:0 12px;display:flex;align-items:center;gap:0;cursor:pointer;font-size:28px;color:#E6EDF3}
+.mrow:active{background:#131b26}
+.mrow svg{width:30px;height:30px;fill:#22D3EE;margin:0 24px 0 6px;flex:none}
+.mrow .ar{margin-left:auto;color:#8B98A9;padding-right:6px}
+#fiLogRow{cursor:pointer;border-radius:8px;margin:0 -6px;padding:0 6px}
+#fiLogRow:active{background:#1B2635}
+.crow2{flex:none;height:62px;background:#1B2635;border:1px solid #3A4656;border-radius:12px;padding:12px;position:relative;display:flex;align-items:center;justify-content:space-between;font-size:28px;cursor:pointer}
+.crow2 .n{color:#E6EDF3;padding-left:4px}
+.crow2 .v{color:#22D3EE;padding-right:4px;white-space:nowrap}
+.crow2.ro{cursor:default}
+.crow2 .slider{display:flex;align-items:center;gap:14px}
+.crow2 input[type=range]{width:240px;accent-color:#22D3EE;height:20px;cursor:pointer}
+/* modals */
+.modal{position:absolute;left:0;top:0;width:800px;height:480px;background:rgba(0,0,0,.7);display:none}
+.modal.on{display:block}
+#confirm .dlg{position:absolute;left:170px;top:50%;transform:translateY(-50%);width:460px;padding:20px;display:flex;flex-direction:column;gap:14px}
+#confirm .q{font-size:28px;color:#E6EDF3}
+#confirm .s{font-size:20px;color:#22D3EE;line-height:1.3}
+#confirm .bb{height:56px;display:flex;justify-content:space-between;align-items:center}
+#confirm .bb .btn{width:200px;height:52px;font-size:32px}
+#editor .dlg{position:absolute;left:140px;top:8px;width:520px;padding:12px;display:flex;flex-direction:column;gap:8px}
+#editor .t{font-size:28px;color:#22D3EE}
+#editor .h{font-size:20px;color:#8B98A9}
+#editor .ta{height:66px;background:#0B0F14;border-radius:6px;padding:8px 10px;font-size:48px;line-height:50px;color:#FBBF24;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+#editor .ta .cur{display:inline-block;width:3px;height:44px;background:#22D3EE;vertical-align:-6px;margin-left:2px}
+#editor .live{font-size:20px;color:#4ADE80;min-height:24px}
+#kb{position:absolute;left:0;bottom:0;width:800px;height:280px;background:#141C26;padding:8px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:8px}
+#kb .k{background:#1B2635;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#E6EDF3;cursor:pointer}
+#kb .k.auto{background:#4ADE80;color:#0B0F14;font-weight:500}
+#kb .k:active{background:#131b26}
+#hist{top:44px;height:436px}
+#hist .dlg{position:absolute;left:8px;top:8px;width:784px;height:420px;padding:14px;display:flex;flex-direction:column;gap:6px}
+#hist .hh{height:52px;display:flex;align-items:center;gap:8px}
+#hist .hh .t{flex:1;font-size:20px;color:#E6EDF3}
+#hist .hh .btn{width:100px;height:48px;font-size:20px;color:#8B98A9}
+#hist .hh .btn.on{background:#22D3EE;color:#0B0F14}
+#hist .hh .x{width:64px;height:48px;font-size:28px;color:#E6EDF3}
+#hist .crow{height:216px;position:relative}
+#hist canvas{position:absolute;left:52px;top:0}
+#hist .yl{position:absolute;left:0;width:44px;text-align:right;font-size:20px;color:#8B98A9}
+#hist .xr{height:22px;position:relative;font-size:20px;color:#E6EDF3}
+#hist .leg{font-size:20px;color:#8B98A9}
+#hist .sum{font-size:20px;color:#E6EDF3;line-height:1.3}
+#hist .empty{position:absolute;left:52px;right:0;top:95px;text-align:center;font-size:28px;color:#8B98A9}
+#toast{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);background:#22D3EE;color:#0B0F14;font-size:20px;padding:8px 18px;border-radius:10px;display:none}
+@media (prefers-reduced-motion: reduce){ .caldue{transition:none} }
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <h1>SCM Model 247 &mdash; virtual panel</h1>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.56. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="stage" id="stage">
+        <div class="bezel">
+          <div id="dev" aria-label="SCM instrument screen">
+            <!-- top bar -->
+            <div id="top">
+              <img class="logo" id="logo" alt="Micrometrix" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAAAhCAYAAAA7zlIvAAAKHUlEQVR42u2ce7BVVR3HP/uccy9wudx4XK+NA0ym9LCaiZhCxVHH0EkiEYqcUgzJGJMiKVNRo7TSBnr5qAjHSptQixQfNU1RSkXhTE1gmZA0FQZ2DYEL93nOPmf3x/mumV9r1j7n3MtlENhr5sy+e531+v3W9/dc69xo98sHKxy5EgNNwHLgS0BBdVk5yksuY0FWMmBlJQNWVjJgZSUrGbCycuwCK9GnXqlk7M2AZUvUQJ9cA+DLZ+w9fkvB/F3W+xPAtQJPxQNUBTgFWK/3KABEN84DwC2mn3t+EziPLF913ADLmbe9wPYafbYDX6aa1Cx5YzgA/Qf4OPByoH9Xxvbj0xQWVN9kzJ775PX9rcBzalPxwJkDPiFQ2THc34WM7ccnsBKBJfQp6/t+YLHnyMcCzaPADwXCUmCMJGP7UVciDyu5oQKrlgPvfKjfAnfq75KA1AUsVf9DAZDTjIUaQUBk2vjt8kbzHqsKYSj05erwtFYwVgHGGF85atTHsnX1QFHW4m4EZgOv0YTLgJ3DcJhcDoAoCRAbN9j/WCuVIaZzBtvPgWc0cAnQKiXyO2BLLQVS8KS8AlwAvA54PhAZ+o5+L/AR4FfAw8B3NU58iNK4GDhB7zuB+wJEtABLgBH6bivwmPpfAZwIPA78uQYdR6OmqgCzgLcDG4GnGqDPfX8mcC7wT2BtA5YlUr+Zyga0Arv1vgvYkzZGwRukDIwH7gHOMSmFpIZJfBK4F/h5SvphsCo3B3xOwHBlgwjJGWLPAVaaNo8LWHmZ6BagKGDlTcTqrzERLaH8XBLQfn47v000CFOTpkHS1unmvgz4AHC3XJKC/N40GhywFkoR7BKw7P6WAzS6fORI4K/ADVIgG4HXAv817WqmGwrAX4TsZcDXNHA90/J3RX2NZuXrlb3ABDGjALwbWGOISID36nvr37nNuhTokCa1prt8iGYil9Iu8k4l4kGam8SzHOU6Jr5Tc7ykZ1yHBlf3LeCPsgIEBCIxgmvHKQJvA+4A2oBpsiI0Ygqd1D4GfEVm7RHgXymqNieCTpaGmT+MKj9vkrWzJaFrjGS1AhdJSjdTTbjmDIN6BM6SR99JwFsE2mb12Q38DJgBvFk05TXGbklnxWzQVOAsadRO4PfAH8w8JwJzNF8lwOtY9fvF2y3expaBScAbJRwuTfOSUjzvBE7XeGcBV2rj7wfeAJxt9rIf+Dfwa9X1iS+9mvNC+ccviNfON56mz4A02y+BieJnSVqys1Efy5UO4CbgU8CDIiIXkDInpWu0ScVhBJaTpAdl22cAU+T3IT/hBOAXMpPnmT4R8D2BaClwlzbyWuBm4FXeXM8JWFfKVPhlJXC9NvgbMiV+WSu/sAd4PfDtQdC6GrjaCO9twDUyP7bsoZqUXm00xQX6IGDNklLwy9dlgZYAHwO2Cbg5qichAPOkSKaIH+3AZwW0LrkXHcA+gaumf5arYd8XANNFZDng6Je1cTMPw9lgYpi5Tuu52Hz/frVZJ1+KwCbEBuwXAasEqrXA5TKXl4k+xLBYvtoUYIXqZ+l5o0DVLbrfCnxUGuCDwBeMVovlf3xY81ynugEB/FK5GQBXAe8QPxfKj+nXut4nuueJ5nVa23rx5B69n6ax+jXPBtV/UvVn6HnQmNAc8BMls5EwTJW/3C6g3mqUSKR+pTS/qp7GcknQLcDnxYD1xiQ6dT5F0hUfxmz6CDHzM3JWVwHjZB4Tme0VgcNzP4+1WBt+H7CoTl5sH7BDUnuDANIikJQlxXepz1bRv1rj3qzNLQhE31G7idJ8RYHhgAD+Lmm4ycDTAmhZwLgjZZ37ZaKdr7UjkKc6oPqfCvB7PRrz4l+HNNG5wFxFmG3S4ks8n9aa6wqHcLuhmeoh8g75W0nABI4+zDmjscAzcjanyveYIXA9TfVMsq1Gf+djnSpaN4mxI01idURK1PeshGeu/KZXa0M2qF+LnhvVfozqYjPOWLUZb3g73oD+oJ5unZM0xxyBsCi/qKgAqc0cj2H8xJYUGnbKlVgQuMrkosVWae5/6O8uacjugLlLGsjKp2os27ikSTfLfNyv768WykvGBEbehxp+WaNlnJ6PSGVfArxJdc5ENjWQ4OsXU5ob0LAuIuo3mqFNAtSkTSybFMbIGoyPvajNWYTYaFa7zgGNsUvRecG4IS+aI7LEO/TPpWTK+wXMWvzpk1lv1TgjFJBta1ApVTylU0nTWPY8MJFmuE02uFXSe7uJPCKjHVyonQQ+caNq1PQZpfdH9Vyu6LMo/yBJuXyYmPQJEgznN441vojze0JjRGbTXhSjE+BDeh4ULYtMIrdLG5OknBQkARDbdW4zyd73KGqbLZN5hVmr26cJoqE7ZZ5cQPgSA4QD2tOHFAxtlaD8QHmqcg2r5gRwspK1iTnqiUKS2ybwOGmJFDkspHrHqqI2sZFaF2Z3mH6hFEJZ5pMGrvNEBlibpapP1vtv+P+rPVHgrNBqx6/KRztDCdONktS8NnOlmTPnbbw7SVghn+4qMf0Zac8LjXNf0ib664mMf0ONdd4p0ztHa9xhTNYe+Xd90qR50TRSLsF1BjB5D0Q+0Nw6eoAfy1z+SUnnu2WdfqTURa9nEt0+LpKA98iS3K7Ic6FvCt0Z4XzDLIvOZkmPZTjGwVstTVDP3LWaKDIOmFEkgUUjAX1KPSxT3wc8M1f05u5VnWPK34DzFYycqajMlU0KCkreOFa15xUtzhfAbJj/LPBFs6aSNEuvGSPxzJJbZ5835ybxfoXWebZZZ6d83kibP005rQUa53rDi14jJNZMDRjfDap35uYqj3W5tPA1ijKnSeCWmlMZt/ZJyt09pJTPOOD7ypedCnRHgV9CR3V+uRwN8UpzKJ3gfgn9aaqXB10ZI5NywMuPtauvvUA4SlqwW4x1WrdZ7XzzM9oIUU7M7tN8Y7xx0spk5ck6pUn90i7a9ps6d5KwL0DnnsAYdp2RxusJBDcuqdotesarXci3alLKpV/tJxhBHvD8p3GavzMwzpMC0UQvyn5CQdbFUcpP7JMhACcZ5Im5PW9cpRDeqdmSOc7JGy1ZMj5DZMBZNikGTP8mIwQ5z0G2kVFTyjghcx5rY9zt2VGe+U8kDJHA7epKZnOjOut0Y4TWGXL23Vz2iCstlRSbsYrGejSZscpmvc1mPpfEbZe2OkXC84JOLfI6anuq0MDmMwTAMMiLhvOE/rxhIoEcSlSj3vcl0hzyKMWpDo1Djeg28hzw0ByVOmsfzDr9dIHfptIADf7a0tqH2lXkxpxkBMelcJYriu2Xkjji14Rd1HGvnL+svPLLaJm7dXqfKX8wViCxHbilcITvKdkry1H232Z4pV9PTgSeh5UoPl2R+ihzZno+cFrhCP/+L2/8jmQYr91kZfhLYs5UZygidVdppiuHV6F6STQpKB9zJE1hwWS4M1AdHZrreYHqJkWZ06meky52kfD/ALezN70YvKTMAAAAAElFTkSuQmCC">
+              <div class="brand">SCM Model 247</div>
+              <div class="title" id="scrTitle" style="left:0"></div>
+              <div class="caldue" id="caldue" style="display:none;left:0">&#9888; CAL DUE</div>
+              <div class="nflush" id="nflush"></div>
+              <div class="clock" id="clock">--:--:--</div>
+            </div>
+            <!-- nav rail -->
+            <div id="nav">
+              <div class="it on" data-s="scm"><svg viewBox="0 0 24 24"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg><span>SCM</span></div>
+              <div class="it" data-s="trend"><svg viewBox="0 0 24 24"><path d="M12 6 3 15l2.1 2.1L12 10.2l6.9 6.9L21 15z"/></svg><span>Trend</span></div>
+              <div class="it" data-s="scope"><svg viewBox="0 0 24 24"><path d="M12 5C6.5 5 2.6 9.1 1 12c1.6 2.9 5.5 7 11 7s9.4-4.1 11-7c-1.6-2.9-5.5-7-11-7zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9zm0-7a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg><span>Scope</span></div>
+              <div class="it" data-s="files"><svg viewBox="0 0 24 24"><path d="M2 5h7l2 2h11v13H2z"/></svg><span>Files</span></div>
+              <div class="it" data-s="config"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.5 7.5 0 0 0-1.7-1L15 3.3H9l-.4 2.6a7.5 7.5 0 0 0-1.7 1l-2.5-1-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.5 7.5 0 0 0 1.7 1l.4 2.6h6l.4-2.6a7.5 7.5 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg><span>Config</span></div>
+            </div>
+
+            <div id="content">
+              <!-- SCM -->
+              <div class="scr on" id="scm">
+                <div class="card gcard">
+                  <div class="hdr"><div class="mode" id="scmMode">RELATIVE</div><div class="chip" id="scmChip">NORMAL</div></div>
+                  <div class="mid"><div class="digits" id="digits">0</div></div>
+                  <div class="ftr"><div class="absl" id="scmAbs"></div><div class="dich" id="di1c" style="right:190px"></div><div class="dich" id="di2c" style="right:60px"></div><div class="unit" id="scmUnit">mV</div></div>
+                </div>
+                <div class="brow">
+                  <div class="vbtn" id="bLow"><div class="cap">Low Alarm</div><div class="val" id="vLow">-500 mV</div></div>
+                  <div class="btn f32" id="bZero" style="font-weight:500">ZERO</div>
+                  <div class="vbtn" id="bHigh"><div class="cap">High Alarm</div><div class="val" id="vHigh">+500 mV</div></div>
+                </div>
+                <div class="crow">
+                  <div class="btn" id="bClean">Manual Clean</div>
+                  <div class="btn c-warn" id="bPid">PID: MANUAL  0.0%</div>
+                </div>
+              </div>
+
+              <!-- TREND -->
+              <div class="scr" id="trend">
+                <div class="tiles">
+                  <div class="tile"><div class="cap">Current</div><div class="val" id="trCur">--</div></div>
+                  <div class="tile"><div class="cap">Min</div><div class="val" id="trMin">--</div></div>
+                  <div class="tile"><div class="cap">Max</div><div class="val" id="trMax">--</div></div>
+                  <div class="vbtn" id="bWin"><div class="cap">Window</div><div class="val c-accent" id="trWin">1 h</div></div>
+                </div>
+                <div class="card tcard">
+                  <div id="chips">
+                    <div class="chipb on" data-i="0" style="--sw:#22D3EE;border-color:#22D3EE"><span class="sw"></span>SC mV</div>
+                    <div class="chipb on" data-i="1" style="--sw:#FBBF24;border-color:#FBBF24;min-width:176px"><span class="sw"></span><span id="chipPid">PID 0.0 %</span></div>
+                    <div class="chipb on" data-i="2" style="--sw:#F87171;border-color:#F87171"><span class="sw"></span>Flush&nbsp;&nbsp;&nbsp;<span class="sw" style="--sw:#4ADE80"></span>Recover</div>
+                  </div>
+                  <canvas id="trC" width="638" height="0"></canvas>
+                  <div class="axl" id="trYt" style="left:14px;top:50px">+100</div>
+                  <div class="axl" id="trYb" style="left:14px;bottom:48px">-100</div>
+                  <div class="axx" id="trX0" style="left:14px;bottom:16px"></div>
+                  <div class="axx" id="trX1" style="left:0;right:0;text-align:center;bottom:16px"></div>
+                  <div class="axx" id="trX2" style="right:14px;bottom:16px">now</div>
+                  <div class="empty" id="trEmpty" style="display:none">Collecting data...</div>
+                </div>
+              </div>
+
+              <!-- SCOPE -->
+              <div class="scr" id="scope">
+                <div class="tiles">
+                  <div class="tile"><div class="cap">Sine Vpp</div><div class="val" id="scVpp">--</div></div>
+                  <div class="tile"><div class="cap">Motor RPM</div><div class="val" id="scRpm">--</div></div>
+                  <div class="tile"><div class="cap">Phase</div><div class="val" id="scPhase">--</div></div>
+                  <div class="tile click" id="tHealth"><div class="cap">Flush health &nbsp;&#8250;</div><div class="val" id="scHealth">--</div></div>
+                </div>
+                <div class="card scard">
+                  <canvas id="scC" width="612" height="0"></canvas>
+                  <div class="leg" id="scDiag">Sine (blue) and drive (amber), 512 ms window</div>
+                  <div class="nosig" id="nosig" style="display:none">No sensor signal</div>
+                </div>
+              </div>
+
+              <!-- FILES -->
+              <div class="scr" id="files" style="gap:8px">
+                <div id="fiStrip"><div class="btn" id="fiBack">&#8249;&nbsp;&nbsp;Back</div><span class="ct" id="fiTitle">Data logging</span></div>
+                <div id="fiMenu"></div>
+                <div id="fiLogPage">
+                <div class="card dcard">
+                  <div class="drow" id="fiLogRow" title="Tap to set the log interval"><span class="n">Logging</span><span class="v" id="fiLog">every 15 min  &#8250;</span></div>
+                  <div class="drow"><span class="n">Rows today</span><span class="v" id="fiRows">0</span></div>
+                  <div class="drow"><span class="n">Stored on unit</span><span class="v" id="fiFile">-</span></div>
+                  <div class="drow"><span class="n">USB drive</span><span class="v" id="fiUsb">ready</span></div>
+                  <div class="drow"><span class="n">Last export</span><span class="v" id="fiLast">not yet</span></div>
+                </div>
+                <div class="status" id="fiStatus">USB connected</div>
+                <div class="mrow" id="fiExpOpen"><svg viewBox="0 0 24 24"><path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm3-10H5V5h10v4z"/></svg><span>Export data</span><span class="ar">&#8250;</span></div>
+                </div>
+                <div id="fiExpPage">
+                  <div id="fiExpList"></div>
+                  <div class="status" id="fiExpStatus"></div>
+                </div>
+              </div>
+
+              <!-- SERVICE -->
+              <div class="scr" id="service">
+                <div class="card dcard">
+                  <div class="dcap">Calibration reminder</div>
+                  <div class="drow"><span class="n">Status</span><span class="v" id="svState">-</span></div>
+                  <div class="drow"><span class="n">Last calibrated</span><span class="v" id="svLast">-</span></div>
+                  <div class="drow" id="svIntRow" style="cursor:pointer;border-radius:8px;margin:0 -6px;padding:0 6px"><span class="n">Interval</span><span class="v" id="svInt">-</span></div>
+                  <div class="drow" id="svDriveRow" style="cursor:pointer;border-radius:8px;margin:0 -6px;padding:0 6px"><span class="n">Relay drive</span><span class="v" id="svDrive">-</span></div>
+                </div>
+                <div class="status" id="svMsg"></div>
+                <div class="srow">
+                  <div class="btn" id="svUnlock">Unlock</div>
+                  <div class="btn g" id="svMark">&#10003;&nbsp; Mark calibrated</div>
+                  <div class="btn g" id="svZero">Clear zero</div>
+                </div>
+                <div class="srow">
+                  <div class="btn g" id="svPid">PID: On</div>
+                  <div class="btn g" id="svClean">Clean: On</div>
+                  <div class="btn g" id="svPin">Change PIN</div>
+                  <div class="btn g c-crit" id="svReset">Factory reset</div>
+                </div>
+              </div>
+
+              <!-- CONFIG -->
+              <div class="scr" id="config">
+                <div id="cfgStrip"><div class="btn" id="cfgBack">&#8249;&nbsp;&nbsp;Back</div><span class="ct" id="cfgTitle"></span></div>
+                <div id="cfgMenu"></div>
+                <div id="rows"></div>
+              </div>
+            </div>
+
+            <!-- modals -->
+            <div class="modal" id="hist">
+              <div class="card dlg">
+                <div class="hh">
+                  <div class="t">Signal Health history</div>
+                  <div class="btn" data-d="7">7 days</div><div class="btn" data-d="30">30 days</div><div class="btn" data-d="60">60 days</div>
+                  <div class="btn x" id="histX">&#10005;</div>
+                </div>
+                <div class="crow">
+                  <div class="yl" id="hy0" style="top:0">100</div><div class="yl" id="hy1" style="top:48px"></div><div class="yl" id="hy2" style="top:96px"></div><div class="yl" id="hy3" style="top:144px"></div><div class="yl" id="hy4" style="top:192px">80</div>
+                  <canvas id="hiC" width="704" height="216"></canvas>
+                  <div class="empty" id="hiEmpty" style="display:none"></div>
+                </div>
+                <div class="xr"><span id="hx0" style="position:absolute;left:52px"></span><span id="hx1" style="position:absolute;left:0;right:0;text-align:center;padding-left:52px"></span><span style="position:absolute;right:0">now</span></div>
+                <div class="leg" id="hiLeg"></div>
+                <div class="sum" id="hiSum"></div>
+              </div>
+            </div>
+            <div class="modal" id="confirm">
+              <div class="card dlg">
+                <div class="q" id="cfQ"></div>
+                <div class="s" id="cfS"></div>
+                <div class="bb"><div class="btn" id="cfNo">Cancel</div><div class="btn" id="cfYes" style="background:#4ADE80;color:#0B0F14">Confirm</div></div>
+              </div>
+            </div>
+            <div class="modal" id="editor">
+              <div class="card dlg">
+                <div class="t" id="edT"></div>
+                <div class="h" id="edH"></div>
+                <div class="ta"><span id="edV"></span><span class="cur"></span></div>
+                <div class="live" id="edL"></div>
+              </div>
+              <div id="kb"></div>
+            </div>
+            <div id="toast"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="below">
+        <div class="box">
+          <h2>Try this</h2>
+          <ol class="steps">
+            <li>Tap <b>Low Alarm</b> and set <b>-20</b> with the keypad. The status chip turns red and the reading goes red.</li>
+            <li>Tap <b>Manual Clean</b>, then open <b>Trend</b> and set the window to <b>1 m</b>: red flush, green recover, and the live reading dipping and recovering. Set speed to &times;10 to watch it faster.</li>
+            <li>Tap <b>PID: MANUAL</b>: the keypad shows the dose. Enter sets a new manual value; the <b>AUTO</b> key hands over to the controller, which drives the reading to the setpoint (the amber line on the Trend is the dose). In AUTO, tapping the button asks what output to hold in MANUAL.</li>
+            <li>Choose <b>Sensor: fouling</b> on the right, open <b>Scope</b> and tap the <b>Signal Health</b> tile for the 60-day history. Then choose <b>No signal</b>: a cut cable reads under 4 mA, so the panel shows <b>SENSOR FAULT</b> and dashes instead of a number, and the controller drops to MANUAL.</li>
+            <li>Press <b>Make calibration due</b>. Tap the flashing <b>CAL DUE</b> badge, unlock with the demo's PIN <b>0000</b>, then <b>Mark calibrated</b>.</li>
+            <li>On <b>Files</b>, open <b>Data logging</b> and press <b>Day</b>. The file appears in the USB stick panel on the right. Tap the <b>Logging</b> line there to change the log interval.</li>
+            <li>On <b>Files</b>, press <b>Export configuration</b> and open <code>SCM_Config.txt</code> on the right: every setting as plain text. Change an alarm, then <b>Import configuration</b> puts it back.</li>
+            <li>Open <b>Config</b>: six groups in a list. Tap one, scroll its settings, change a value, and <b>Back</b> returns you to the menu.</li>
+          </ol>
+        </div>
+        <div class="box">
+          <h2>What is real here</h2>
+          <p class="note">Screens, layout, colours, menus, the keypad, alarm hysteresis, the PI controller, the clean cycle, trend windows, the Signal Health formula, the CSV columns and the service PIN rules follow the firmware source. The sensor, the water and the motor are simulated. Fonts are close, not identical, and the history before you opened the page is generated so the graphs are not empty.</p>
+        </div>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="box">
+        <h2>Scenarios</h2>
+        <div class="row"><span class="lab">Process</span>
+          <button class="sc on" data-g="process" data-v="normal">Normal</button>
+          <button class="sc" data-g="process" data-v="low">Drifts low</button>
+          <button class="sc" data-g="process" data-v="high">Drifts high</button>
+          <button class="sc" data-g="process" data-v="noisy">Noisy</button>
+        </div>
+        <div class="row"><span class="lab">Sensor</span>
+          <button class="sc on" data-g="sensor" data-v="healthy">Healthy</button>
+          <button class="sc" data-g="sensor" data-v="fouling">Fouling</button>
+          <button class="sc" data-g="sensor" data-v="quiet">Neutral water</button>
+          <button class="sc" data-g="sensor" data-v="none">No signal</button>
+        </div>
+        <div class="row"><span class="lab">Dose output module</span>
+          <button class="sc on" data-g="dac" data-v="on">Connected</button>
+          <button class="sc" data-g="dac" data-v="off">Unplugged</button>
+        </div>
+        <div class="row"><span class="lab">Flow switch on a digital input (Config &rarr; Inputs &amp; outputs &rarr; Input 1: Flow switch)</span>
+          <button class="sc on" data-g="flow" data-v="on">Flow</button>
+          <button class="sc" data-g="flow" data-v="off">No flow</button>
+        </div>
+        <div class="row"><span class="lab">USB stick</span>
+          <button class="sc on" data-g="usb" data-v="in">Inserted</button>
+          <button class="sc" data-g="usb" data-v="out">Removed</button>
+        </div>
+        <div class="row"><span class="lab">Time speed</span>
+          <button class="sc on" data-g="speed" data-v="1">&times;1</button>
+          <button class="sc" data-g="speed" data-v="10">&times;10</button>
+          <button class="sc" data-g="speed" data-v="60">&times;60</button>
+        </div>
+        <div class="row" style="margin-bottom:0">
+          <button class="pbtn" id="bCalDue">Make calibration due</button>
+          <button class="pbtn" id="bReset">Restart demo</button>
+        </div>
+      </div>
+      <div class="box">
+        <h2>Log files</h2>
+        <p class="note" style="margin-bottom:6px">Day files live on the instrument's own flash (7 MB, about 60 days). Exports are written to the USB stick.</p>
+        <div class="files" id="usbList"></div>
+        <pre class="csv" id="csvView" hidden></pre>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => v<a?a:v>b?b:v;
+// ?bare=1 shows the device alone (embedding, screenshots); ?screen=config&group=1 deep-links a screen.
+const Q = new URLSearchParams(location.search);
+if (Q.get('bare')==='1') document.documentElement.classList.add('bare');
+const BOOT_SCREEN = ['scm','trend','scope','files','config','service'].includes(Q.get('screen')) ? Q.get('screen') : 'scm';
+
+// ------------------------------------------------------------------ scale
+const stage = $('stage'), dev = $('dev');
+function fit(){ const s = stage.clientWidth/800; dev.style.transform = 'scale('+s+')'; }
+new ResizeObserver(fit).observe(stage); fit();
+
+// ------------------------------------------------------------------ state (mirrors the .ino globals)
+const DEF = { zero:97, alarmLow:-500, alarmHigh:500, avg:32, calVmin:0.527, calVmax:2.609, dac4:658, dac20:3285,
+  cleanIntHr:1, flushS:60, recovS:60, sp:0, kp:1, ti:60, rev:true, dose4:13107, dose20:65535, bright:100,
+  outMin:0, outMax:100, pwrup:0, pwrupOut:0, featPid:true, featClean:true, logInt:15, dispDiv:1, traces:7, calInt:90, pin:'0000' };   // the demo's own PIN - deliberately NOT the factory PIN, this page is public
+const HYST = 10, SPAN = 2000;
+let S;
+function fresh(){
+  const now = Math.floor(Date.now()/1000);
+  S = Object.assign({}, DEF, {
+    t: now, speed:1, screen:'scm',
+    abs:91, live:91, held:91, showAbs:false, aLow:false, aHigh:false,
+    cleanActive:false, phase:0, phaseStart:now, lastClean:now, fault:false, flowSwitch:true, di1Func:0, di1Low:true, di2Func:0, di2Low:true, fiPage:0, cfgIo:'', frelayFs:false, arelayFs:false, relayLow:true, healthLimit:0, healthAlarm:false, noFlow:false, hLowSecs:0,
+    pidAuto:false, out:0, integ:0, doseReady:true,
+    usb:true, rowsToday:0, lastExport:'', lastKind:-1, exportStatus:'USB connected', lastSlot:-1, lastCleanLogT:0,
+    trendScale:2, calLast: now - 23*86400, unlockedUntil:0, fails:0, lockoutUntil:0, svcStatus:'',
+    process:'normal', sensor:'healthy', dist:0,
+    cfgGroup:-1, rows:[], files:{}, hist:[], per:null, unlockedAt:0
+  });
+  // fast ring (1 m window) and six slow rings, exactly the firmware's layout
+  S.fast = ring(); S.slow = [0,1,2,3,4,5].map(ring);
+  S.acc = [0,1,2,3,4,5].map(()=>({v:0,o:0,n:0,p:0}));
+  S.fastAcc = 0;
+  S.sweepT = 0;
+  S.health = {valid:false, state:0, h:0, rpm:0, vpp:0, sq:0, phase:50, duty:50, jitter:0, lastPeriod:0};
+  S.flush = null; S.fl = {n:0, v:0, h:0, r:0, vpp:0};   // the current flush's health samples and the last flush's result (0.9.56)
+  S.rowAcc = {n:0,v:0,h:0,r:0,vpp:0};
+}
+function ring(){ return { v:new Float32Array(360), o:new Uint8Array(360), p:new Uint8Array(360), n:0, next:0 }; }
+const MULT = [1,2,4,16,48,96], WIN_NAME = ['15 m','30 m','1 h','4 h','12 h','24 h','1 m'], WIN_SECS=[900,1800,3600,14400,43200,86400,60];
+const ORDER = [6,0,1,2,3,4,5];
+
+// ------------------------------------------------------------------ formatting (fmt_sc)
+function fmtSc(mv, plus){
+  let q = mv / S.dispDiv, half = S.dispDiv===100?0.005:S.dispDiv===10?0.05:0.5;
+  if (q>-half && q<half) q = 0;
+  const d = S.dispDiv===100?2:S.dispDiv===10?1:0;
+  let s = Math.abs(q).toFixed(d);
+  return (q<0?'-':plus?'+':'') + s;
+}
+const unit = () => S.dispDiv===1 ? ' mV' : '';
+function relLive(){ return clamp(S.live - S.zero, -1000, 1000); }
+function relHeld(){ return clamp(S.held - S.zero, -1000, 1000); }
+function pad2(n){ return (n<10?'0':'')+n; }
+function tm(t){ const d=new Date(t*1000); return {y:d.getFullYear(),mo:d.getMonth()+1,d:d.getDate(),h:d.getHours(),mi:d.getMinutes(),s:d.getSeconds()}; }
+function dateStr(t){ const x=tm(t); return x.y+'-'+pad2(x.mo)+'-'+pad2(x.d); }
+function timeStr(t, sec){ const x=tm(t); return pad2(x.h)+':'+pad2(x.mi)+(sec?':'+pad2(x.s):''); }
+function stamp(t){ return dateStr(t)+' '+timeStr(t,true); }
+function durShort(s){ s=Math.max(0,Math.floor(s)); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return h? h+':'+pad2(m)+':'+pad2(x) : m+':'+pad2(x); }
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ------------------------------------------------------------------ scenario knobs
+function processTarget(){
+  // Absolute mV the water would settle at for the current dose. Reverse acting:
+  // more coagulant moves the reading up. 40 % dose is the "as found" point.
+  const base = 91 + (S.out - 40) * 2.0;
+  return base + S.dist;
+}
+function sensorParams(){
+  switch (S.sensor){
+    case 'fouling': return { vpp:0.55, noise:70, phase:0.10, rpm:292 };
+    case 'none':    return { vpp:0.02, noise:6,  phase:0,    rpm:0 };
+    case 'quiet':   return { vpp:0.03, noise:9,  phase:0.01, rpm:294 };   // sensor fine, water near neutral
+    default:        return { vpp:1.21, noise:9,  phase:0.01, rpm:294 };
+  }
+}
+
+// ------------------------------------------------------------------ one simulated second (loop() at 1 Hz)
+function stepSecond(quiet){
+  S.t += 1;
+  const now = S.t;
+  // process drift scenarios
+  if (S.process==='low')  S.dist = Math.max(S.dist - 0.8, -320);
+  else if (S.process==='high') S.dist = Math.min(S.dist + 0.8, 320);
+  else if (S.process==='noisy') S.dist = S.dist*0.7 + (Math.random()-0.5)*90;
+  else S.dist *= 0.97;
+  // clean cycle FSM
+  if (S.cleanActive){
+    const el = now - S.phaseStart;
+    if (S.phase===1 && el >= S.flushS){ flushClose(); S.phase=2; S.phaseStart=now; }
+    else if (S.phase===2 && el >= S.recovS){ S.cleanActive=false; S.phase=0; logRow(false); }
+  }
+  if (S.featClean && !S.cleanActive && S.cleanIntHr>0 && now - S.lastClean >= S.cleanIntHr*3600) startClean();
+  // water: first-order toward the target; a flush pulls the live reading down hard
+  const tgt = processTarget();
+  S.abs += (tgt - S.abs) * (1/30) + (Math.random()-0.5) * (S.sensor==='none'?0.2:2.4);
+  let inst = S.abs;
+  if (S.cleanActive){
+    if (S.phase===1) inst = S.abs - 190 * Math.min(1,(now-S.phaseStart)/8);
+    else inst = S.abs - 190 * Math.exp(-(now-S.phaseStart)/18);
+  }
+  if (S.sensor==='none') inst = -1500;   // 0 mA on a 4-20 mA loop maps to about -1500 mV absolute
+  const n = Math.max(1, S.avg/8);   // the firmware averages 16 kSPS buffers; per second this is the equivalent depth
+  S.live += (inst - S.live)/n;
+  S.noFlow = ((S.di1Func===1 || S.di2Func===1) && !S.flowSwitch);
+  if (!S.cleanActive && !S.noFlow) S.held += (inst - S.held)/n;
+  // Signal Health alarm: a minute under the limit trips it, releases 2 % above
+  if (!S.healthLimit) S.healthAlarm=false;   // otherwise set per flush in flushClose()
+  // live zero: under 3.6 mA (-1050 mV) the input is a fault, not a reading
+  const wasF = S.fault; S.fault = wasF ? (S.live < -1025) : (S.live < -1050);
+  if (S.fault && !wasF && S.pidAuto){ S.pidAuto=false; S.out=S.outMin; S.integ=0; }
+  // alarms with hysteresis
+  const r = relHeld();
+  S.aLow  = S.aLow  ? (r < S.alarmLow  + HYST) : (r < S.alarmLow);
+  S.aHigh = S.aHigh ? (r > S.alarmHigh - HYST) : (r > S.alarmHigh);
+  if (S.fault) S.aLow = true;
+  // PI tick
+  if (!S.doseReady) { S.pidAuto=false; }
+  if (S.featPid && S.pidAuto && S.doseReady && !S.cleanActive && !S.fault && !S.noFlow){
+    const e = ((S.sp - r) / SPAN) * 100 * (S.rev ? 1 : -1);
+    let u = S.kp*e + S.integ;
+    if (S.ti>0){ const ni = S.integ + S.kp*e/S.ti; if ((u<S.outMax || ni<S.integ) && (u>S.outMin || ni>S.integ)) S.integ = ni; }
+    S.out = clamp(S.kp*e + S.integ, S.outMin, S.outMax);
+  }
+  // scope sweep at ~2 Hz - one per second is plenty for the statistics
+  // (once a minute while pre-filling history, so the page opens quickly)
+  if (!quiet || S.t % 60 === 0) sweep();
+  // trend rings: fast ring every 1/6 s -> 6 points per second
+  const ph = !S.cleanActive ? 0 : S.phase;
+  for (let i=0;i<6;i++) push(S.fast, relLive(), S.out, ph);
+  // slow rings every 2.5 s: 2 of every 5 seconds get 1 sample, 3 get 0... approximate with 0.4 samples/s
+  S.fastAcc += 0.4;
+  while (S.fastAcc >= 1){
+    S.fastAcc -= 1;
+    for (let k=0;k<6;k++){
+      const a = S.acc[k]; a.v += relLive(); a.o += S.out; a.n++;
+      if (ph===1 || (ph===2 && a.p!==1)) a.p = ph;
+      if (a.n >= MULT[k]){ push(S.slow[k], a.v/a.n, a.o/a.n, a.p); a.v=a.o=a.n=0; a.p=0; }
+    }
+  }
+  // logging
+  const ra = S.rowAcc; ra.n++; ra.v += S.health.vpp; if (S.health.valid){ ra.h += S.health.h; ra.r += S.health.rpm; }
+  // rows on the clock (:00 :15 :30 :45), plus 5 s detail rows into the _clean file
+  const slot = Math.floor(now/(S.logInt*60)); if (slot !== S.lastSlot){ S.lastSlot = slot; logRow(false); }
+  if (S.cleanActive && now - S.lastCleanLogT >= 5){ S.lastCleanLogT = now; logRow(true); }
+  // health history: 12 h periods
+  histTick();
+  if (!quiet) { /* UI refresh happens in the render loop */ }
+}
+function push(rg, v, o, p){ rg.v[rg.next]=v; rg.o[rg.next]=clamp(Math.round(o),0,100); rg.p[rg.next]=p; rg.next=(rg.next+1)%360; if (rg.n<360) rg.n++; }
+function startClean(){ S.cleanActive=true; S.phase=1; S.phaseStart=S.t; S.lastClean=S.t; logRow(false); }
+
+// ------------------------------------------------------------------ scope synthesis + compute_scope() port
+const SCOPE_N = 1024, SPS = 2000, FS = 4095;
+let sine = new Int32Array(SCOPE_N), square = new Int32Array(SCOPE_N);
+function sweep(){
+  const p = sensorParams();
+  const f = p.rpm/60;
+  const A = p.vpp/3.3*FS/2, q = 0.9/3.3*FS;
+  const ph0 = Math.random()*6.283;
+  let smin=FS, smax=0, qmin=FS, qmax=0;
+  for (let i=0;i<SCOPE_N;i++){
+    const th = ph0 + 6.2832*f*i/SPS;
+    let s = 2048 + A*Math.sin(th) + (Math.random()-0.5)*p.noise*2;
+    if (S.sensor==='fouling') s += A*0.18*Math.sin(3*th+1.2);
+    let sq = 1700 + (Math.sin(th + p.phase*6.283) > 0 ? q : 0) + (Math.random()-0.5)*6;   // pulse centred on the sine peak: a healthy sensor reads phase ~50 %
+    if (p.rpm===0) sq = 1700 + (Math.random()-0.5)*6;
+    s = clamp(Math.round(s),0,FS); sq = clamp(Math.round(sq),0,FS);
+    sine[i]=s; square[i]=sq; if (s<smin) smin=s; if (s>smax) smax=s; if (sq<qmin) qmin=sq; if (sq>qmax) qmax=sq;
+  }
+  const H = S.health; H.valid=false; H.state=0; H.vpp = (smax-smin)/FS*3.3; H.sq = (qmax-qmin)/FS*3.3;
+  if ((qmax-qmin) < FS*80/1023) return;   // no drive wave = no sensor
+  const thr=(qmin+qmax)/2, hys=(qmax-qmin)/8; let r1=-1,f1=-1,r2=-1, high = square[0]>thr;
+  for (let i=1;i<SCOPE_N;i++){
+    if (!high && square[i]>thr+hys){ high=true; if (r1<0) r1=i; else if (f1>0 && r2<0){ r2=i; break; } }
+    else if (high && square[i]<thr-hys){ high=false; if (r1>0 && f1<0) f1=i; }
+  }
+  if (r1<0||f1<0||r2<0) return;
+  const period = r2-r1; if (period<8) return;
+  H.rpm = 60*SPS/period; H.duty = 100*(f1-r1)/period;
+  H.jitter = H.lastPeriod>0 ? 100*Math.abs(period-H.lastPeriod)/period : 0; H.lastPeriod = period;
+  const mech = Math.max(0, 1 - 0.5*Math.min(1, Math.abs(H.duty-50)/25) - 0.5*Math.min(1, H.jitter/5));
+  H.state = 1;                                   // sensor runs; is the sample strong enough to grade?
+  if (H.vpp < 0.05) return;
+  let pi=r1, pv=-1;
+  for (let i=r1;i<r2;i++){ const v = sine[i-1]+2*sine[i]+sine[i+1]; if (v>pv){pv=v;pi=i;} }
+  const pc=(r1+f1)/2; H.phase = clamp(50 - (pi-pc)*100/period, 0, 100);
+  let rough=0; for (let i=1;i<SCOPE_N-1;i++) rough += Math.abs(sine[i-1]-2*sine[i]+sine[i+1]);
+  rough /= (SCOPE_N-2)*(smax-smin)*0.5;
+  const ns = Math.max(0, 1-rough*8), ps = 1-Math.abs(H.phase-50)/50;
+  H.h = H.vpp >= 0.15 ? 100*(0.5*ns+0.3*ps+0.2*mech) : 100*(0.6*ps+0.4*mech);
+  H.state = 2; H.valid=true;
+}
+
+// ------------------------------------------------------------------ logging + files (LOG_HEADER, day files, exports)
+const LOG_HEADER = 'Timestamp,Relative_mV,Absolute_mV,Output_pct,LowAlarm,HighAlarm,Clean,Health_pct,RPM,Sine_Vpp,Fault';
+function cleanName(){ return !S.cleanActive ? 'idle' : S.phase===1 ? 'flush' : 'recover'; }
+// The unit logs to its own flash; the stick only receives exports (and a
+// mirror while it is in, which the demo does not show separately).
+function logRow(cleanDetail){
+  const ra = S.rowAcc;
+  const nv = ra.n; const hcount = ra.h>0 ? nv : 0;
+  const hc = hcount ? (ra.h/hcount).toFixed(1) : '', rc = hcount ? (ra.r/hcount).toFixed(1) : '', vc = nv ? (ra.v/nv).toFixed(3) : '';
+  S.rowAcc = {n:0,v:0,h:0,r:0,vpp:0};
+  const day = dateStr(S.t)+(cleanDetail?'_clean':'')+'.csv';
+  if (!S.files[day]) { S.files[day] = { rows:[], kind:'day' }; if (!cleanDetail){ closePreviousDay(day); S.rowsToday = 0; } }
+  const rel = S.fault ? '' : relLive().toFixed(1), abs = S.fault ? '' : S.live.toFixed(1);
+  S.files[day].rows.push(stamp(S.t)+','+rel+','+abs+','+S.out.toFixed(1)+','+(S.aLow?1:0)+','+(S.aHigh?1:0)+','+cleanName()+','+hc+','+rc+','+vc+','+(S.fault?1:0));
+  if (!cleanDetail) S.rowsToday++;
+}
+function closePreviousDay(todayName){
+  const days = Object.keys(S.files).filter(k=>S.files[k].kind==='day' && !k.includes('_clean') && k<todayName).sort();
+  if (!days.length) return;
+  const f = S.files[days[days.length-1]];
+  if (f.rows.some(r=>r.split(',')[6]==='day average')) return;
+  let h=0,nh=0,r=0,nr=0,v=0,nvv=0;
+  for (const row of f.rows){ const c=row.split(','); if (c.length<10||c[6]!=='idle') continue; if(c[7]){h+=+c[7];nh++;} if(c[8]){r+=+c[8];nr++;} if(c[9]){v+=+c[9];nvv++;} }
+  if (!nh) return;   // no health data that day: no line
+  f.rows.push(days[days.length-1].slice(0,10)+' 23:59:59,,,,,,day average,'+(nh?(h/nh).toFixed(1):'')+','+(nr?(r/nr).toFixed(1):'')+','+(nvv?(v/nvv).toFixed(3):'')+',');
+}
+// the eight windows of the Export data page, in EXPORT_RANGE_* order (w 0 = everything held)
+const EXPORT = [ {tag:'Last15Min',w:900,name:'Last 15 minutes',said:'15 minutes'}, {tag:'LastHour',w:3600,name:'Last hour',said:'hour'}, {tag:'Last12Hours',w:43200,name:'Last 12 hours',said:'12 hours'}, {tag:'LastDay',w:86400,name:'Last day',said:'day'},
+  {tag:'LastWeek',w:604800,name:'Last week',said:'week'}, {tag:'Last2Weeks',w:1209600,name:'Last 2 weeks',said:'2 weeks'}, {tag:'LastMonth',w:2678400,name:'Last month',said:'month'}, {tag:'All',w:0,name:'All stored data',said:''} ];
+function doExport(kind){
+  if (!S.usb){ S.exportStatus='No USB stick'; return; }
+  const e = EXPORT[kind];
+  const name = 'Export_'+dateStr(S.t)+'_'+e.tag+'.csv';
+  // one file: interval rows and the 5 s clean-cycle detail merged in time order (as the firmware does per day)
+  const cutoff = e.w ? S.t - e.w : 0; const all=[]; let crows=0;
+  for (const k of Object.keys(S.files).sort()) if (S.files[k].kind==='day') for (const row of S.files[k].rows){ if (rowEpoch(row) >= cutoff){ const cl=k.includes('_clean'); all.push({t:rowEpoch(row), c:cl, row}); if (cl) crows++; } }
+  if (!all.length){ S.exportStatus = e.w ? 'No log rows in the last '+e.said : 'No log rows stored'; renderUsb(); return; }
+  all.sort((a,b)=>a.t-b.t || (a.c?1:0)-(b.c?1:0)); const rows=[LOG_HEADER].concat(all.map(x=>x.row));
+  S.exportStatus = (crows ? 'Exported '+all.length+' rows ('+crows+' clean-cycle detail).' : 'Exported '+all.length+' rows.')+' Safe to remove the stick.';
+  S.files[name] = { rows, kind:'export', col:'#22D3EE' };
+  S.lastExport = name; S.lastKind = kind;
+  renderUsb(name);
+}
+function rowEpoch(row){ const m = row.match(/^(\d+)-(\d+)-(\d+) (\d+):(\d+):(\d+)/); return m ? new Date(m[1],m[2]-1,m[3],m[4],m[5],m[6]).getTime()/1000 : 0; }
+
+// ------------------------------------------------------------------ Signal Health history (12 h records)
+const PERIOD = 43200, HIST_MAX = 120;
+function samplingNow(){ return S.cleanActive && S.phase===1 && (S.t - S.phaseStart) >= 10; }   // the flush, after the water has changed over
+function flushClose(){
+  const f = S.fl; if (!f.n){ return; }
+  S.flush = { ok: f.v>0, h: f.v ? f.h/f.v : -1, rpm: f.v ? f.r/f.v : 0, vpp: f.vpp/f.n, t: S.t };
+  if (S.healthLimit>0 && S.flush.ok){ if (S.flush.h < S.healthLimit) S.healthAlarm=true; else if (S.flush.h >= S.healthLimit+2) S.healthAlarm=false; }
+  S.fl = {n:0, v:0, h:0, r:0, vpp:0};
+}
+function histTick(){
+  const idx = Math.floor(S.t/PERIOD);
+  if (!S.per) { S.per = newPer(idx); }
+  const P = S.per;
+  if (samplingNow()){
+    S.fl.n++; S.fl.vpp += S.health.vpp; if (S.health.valid){ S.fl.v++; S.fl.h += S.health.h; S.fl.r += S.health.rpm; }
+    P.sweeps++; P.vpp += S.health.vpp;
+    if (S.health.valid){ P.valid++; P.h += S.health.h; P.rpm += S.health.rpm; P.min = Math.min(P.min, S.health.h); P.rlo=Math.min(P.rlo,S.health.rpm); P.rhi=Math.max(P.rhi,S.health.rpm); }
+    P.secs++;
+  }
+  if (idx !== P.idx){ const rec = buildRec(P, (P.idx+1)*PERIOD); if (P.secs >= 60) pushRec(rec); S.per = newPer(idx); }
+}
+function newPer(idx){ return { idx, sweeps:0, valid:0, h:0, rpm:0, vpp:0, min:1000, rlo:1e9, rhi:-1, secs:0 }; }
+function buildRec(P, tEnd){
+  const r = { t:tEnd, min:Math.round(P.secs/60), vpp:P.sweeps?P.vpp/P.sweeps:0, sig:P.sweeps?Math.round(P.valid*100/P.sweeps):0 };
+  if (!P.valid){ r.h=null; return r; }
+  r.h = P.h/P.valid; r.hmin = Math.min(r.h, P.min); r.rpm = P.rpm/P.valid; r.span = Math.max(0,P.rhi-P.rlo); return r;
+}
+function currentPeriod(){ return S.per && S.per.sweeps ? buildRec(S.per, S.t) : null; }
+function pushRec(r){ S.hist.push(r); if (S.hist.length>HIST_MAX) S.hist.shift(); }
+function histCsv(r, note){
+  const when = dateStr(r.t)+' '+timeStr(r.t);
+  if (r.h==null) return when+','+(r.min/60).toFixed(1)+',,,'+r.sig+',,,'+r.vpp.toFixed(3)+','+note;
+  return when+','+(r.min/60).toFixed(1)+','+r.h.toFixed(1)+','+r.hmin.toFixed(1)+','+r.sig+','+r.rpm.toFixed(1)+','+Math.min(25.5,r.span).toFixed(1)+','+r.vpp.toFixed(3)+','+note;
+}
+function seedHistory(){
+  // 58 days of made-up but plausible records: a slow fouling decline, a
+  // service visit that restored it, and one period with the unit off.
+  const now = Math.floor(S.t/PERIOD)*PERIOD;
+  for (let i=116;i>=1;i--){
+    const t = now - i*PERIOD, day = (116-i)/2;
+    let h = 97.6 - day*0.28 + Math.sin(day*0.9)*0.4; if (day>28) h = 97.2 - (day-28)*0.06;
+    if (i===61 || i===60) continue;  // unit switched off for a day
+    const dip = (i===40) ? 6 : 0;
+    S.hist.push({ t, min:720, vpp:1.19+Math.random()*0.03, sig:100, h:h, hmin:h-1.4-Math.random()*1.2-dip, rpm:293.8+(Math.random()-0.5)*0.6, span:0.6+Math.random()*0.5 });
+  }
+}
+
+// ------------------------------------------------------------------ cal due + service
+function calStatus(){
+  if (S.calInt===0) return {st:'off',d:0};
+  const due = S.calLast + S.calInt*86400;
+  return S.t < due ? {st:'ok', d:Math.ceil((due-S.t)/86400)} : {st:'due', d:Math.floor((S.t-due)/86400)};
+}
+function unlocked(){ if (S.unlockedUntil && S.t*1000 > S.unlockedUntil){ S.unlockedUntil=0; } return S.unlockedUntil>0; }
+function touch(){ if (S.unlockedUntil) S.unlockedUntil = Date.now()+5*60*1000; }
+function lock(){ S.unlockedUntil = 0; S.svcStatus=''; }
+function tryUnlock(txt){
+  if (Date.now() < S.lockoutUntil){ S.svcStatus = 'Locked out - wait '+Math.ceil((S.lockoutUntil-Date.now())/1000)+' s'; return; }
+  if (txt === S.pin){ S.unlockedUntil = Date.now()+5*60*1000; S.fails=0; S.svcStatus='Unlocked'; }
+  else { S.fails++; if (S.fails>=5){ S.lockoutUntil=Date.now()+60000; S.fails=0; S.svcStatus='5 wrong PINs - locked out for 60 s'; } else S.svcStatus='Wrong PIN ('+S.fails+' of 5)'; }
+}
+
+// ------------------------------------------------------------------ rendering: top bar + SCM
+let blink=false;
+function renderTop(){
+  $('clock').textContent = timeStr(S.t,true);
+  const cs = calStatus(), cd=$('caldue'), tt=$('scrTitle');
+  const brandRight = 178 + measure('SCM Model 247',20,500) + 14;
+  tt.style.left = brandRight+'px'; cd.style.left = brandRight+'px';
+  if (cs.st==='due'){ tt.style.display='none'; cd.style.display='block'; cd.style.background = blink?'#F87171':'transparent'; cd.style.color = blink?'#fff':'#F87171'; }
+  else { tt.style.display='block'; cd.style.display='none'; }
+  tt.textContent = '';   // page name dropped from the top bar (0.9.56)
+  const nf = $('nflush');
+  nf.textContent = (S.featClean && !S.cleanActive && S.cleanIntHr>0) ? 'Next flush '+durShort(S.lastClean + S.cleanIntHr*3600 - S.t) : '';
+}
+const mctx = document.createElement('canvas').getContext('2d');
+function measure(txt,px,w){ mctx.font = (w||400)+' '+px+'px Montserrat, Arial'; return mctx.measureText(txt).width; }
+function zoneColor(v){ if (v<S.alarmLow) return '#F87171'; if (v>S.alarmHigh) return '#60A5FA'; if (v>=-10&&v<=10) return '#4ADE80'; return '#8B98A9'; }
+function renderScm(){
+  const rel = relHeld(); let hero = S.showAbs ? S.held : rel; hero = clamp(hero,-1999,1999);
+  const dg = $('digits');
+  if (S.fault){ dg.textContent='----'; dg.style.color='#F87171'; } else { dg.textContent = fmtSc(hero,false); dg.style.color = zoneColor(rel); }
+  let txt, bg;
+  if (S.fault){ txt='SENSOR FAULT'; bg='#F87171'; }
+  else if (S.noFlow){ txt='NO FLOW'; bg='#FBBF24'; }
+  else if (S.cleanActive){ const ph = S.phase===1?S.flushS:S.recovS; const rem = Math.max(0, ph - (S.t-S.phaseStart)); txt = (S.phase===1?'FLUSHING ':'RECOVERING ')+durShort(rem); bg='#22D3EE'; }
+  else if (S.aHigh){ txt='HIGH ALARM'; bg='#60A5FA'; } else if (S.aLow){ txt='LOW ALARM'; bg='#F87171'; } else if (S.healthAlarm){ txt='HEALTH LOW'; bg='#FBBF24'; } else { txt='NORMAL'; bg='#4ADE80'; }
+  const chip=$('scmChip'); chip.textContent=txt; chip.style.background=bg;
+  $('scmMode').textContent = S.showAbs?'ABSOLUTE':'RELATIVE'; $('scmMode').classList.toggle('rel', !S.showAbs);
+  $('scmUnit').textContent = S.dispDiv===1?'mV':'';
+  $('scmAbs').textContent = S.fault ? '' : (S.showAbs?'Relative ':'Absolute ')+fmtSc(S.showAbs?rel:S.held,true)+unit();
+  [[S.di1Func,'di1c'],[S.di2Func,'di2c']].forEach((x,k)=>{ const e=$(x[1]); if (!x[0]){ e.style.display='none'; return; } const act = x[0]===1 ? S.flowSwitch : false; e.style.display='block'; e.textContent='IN'+(k+1)+(act?' ACTIVE':' idle'); e.classList.toggle('on',act); });
+  $('vLow').textContent = fmtSc(S.alarmLow,true)+unit(); $('vHigh').textContent = fmtSc(S.alarmHigh,true)+unit();
+  const pb=$('bPid'); pb.style.display = S.featPid?'flex':'none'; $('bClean').style.display = S.featClean?'flex':'none';
+  if (!S.doseReady){ pb.textContent='PID: NO DAC'; pb.className='btn c-crit'; }
+  else { pb.textContent='PID: '+(S.pidAuto?'AUTO':'MANUAL')+'  '+S.out.toFixed(1)+'%'; pb.className='btn '+(S.pidAuto?'c-good':'c-warn'); }
+}
+
+// ------------------------------------------------------------------ trend chart (ui_trend_chart_push)
+function niceStep(x){ if (x<=0) return 1; const e=Math.pow(10,Math.floor(Math.log10(x))), f=x/e; return (f<=1?1:f<=2?2:f<=5?5:10)*e; }
+const trC=$('trC');
+function traceOn(i){ if (i===1 && !S.featPid) return false; if (i===2 && !S.featClean) return false; return (S.traces>>i)&1; }
+function renderTrend(){
+  const card = trC.parentElement; const W = card.clientWidth - 24, H = card.clientHeight - 24;
+  const cw = Math.round(W*0.96), chH = Math.round(H*0.75);
+  const cx = Math.round((W-cw)/2)+12, cy = 12+40;
+  if (trC.width!==cw || trC.height!==chH){ trC.width=cw; trC.height=chH; }
+  trC.style.left=cx+'px'; trC.style.top=cy+'px';
+  $('trYt').style.top=(cy-2)+'px'; $('trYb').style.top=(cy+chH-22)+'px';
+  const k = S.trendScale, rg = k===6 ? S.fast : S.slow[k];
+  $('trWin').textContent = WIN_NAME[k];
+  const secs = WIN_SECS[k]<900;
+  $('trX0').textContent = timeStr(S.t-WIN_SECS[k],secs); $('trX1').textContent = timeStr(S.t-WIN_SECS[k]/2,secs); $('trX2').textContent = timeStr(S.t,secs);
+  document.querySelectorAll('#chips .chipb').forEach(ch=>{ const i=+ch.dataset.i; ch.style.display = (i===1&&!S.featPid)||(i===2&&!S.featClean)?'none':'flex'; ch.classList.toggle('on', !!traceOn(i)); if(!traceOn(i)) ch.style.borderColor='#3A4656'; else ch.style.borderColor=['#22D3EE','#FBBF24','#F87171'][i]; });
+  $('chipPid').textContent = 'PID '+S.out.toFixed(1)+' %';
+  const g = trC.getContext('2d'); g.clearRect(0,0,cw,chH);
+  // grid: 3 horizontal, 6 vertical (edges included), like lv_chart_set_div_line_count(3,6)
+  g.strokeStyle='#3A4656'; g.lineWidth=1;
+  for (let i=0;i<3;i++){ const y=Math.round(chH*i/2)+0.5; g.beginPath(); g.moveTo(0,y); g.lineTo(cw,y); g.stroke(); }
+  for (let i=0;i<6;i++){ const x=Math.round((cw-1)*i/5)+0.5; g.beginPath(); g.moveTo(x,0); g.lineTo(x,chH); g.stroke(); }
+  if (rg.n<2){ $('trEmpty').style.display='block'; $('trCur').textContent=$('trMin').textContent=$('trMax').textContent='--'; return; }
+  $('trEmpty').style.display='none';
+  const start=(rg.next - rg.n + 360)%360, padN = 360-rg.n;
+  let mn=1e9,mx=-1e9; const vals=new Array(360).fill(null), outs=new Array(360).fill(null), phs=new Array(360).fill(0);
+  for (let i=0;i<rg.n;i++){ const idx=(start+i)%360; vals[padN+i]=rg.v[idx]; outs[padN+i]=rg.o[idx]; phs[padN+i]=rg.p[idx]; if(rg.v[idx]<mn)mn=rg.v[idx]; if(rg.v[idx]>mx)mx=rg.v[idx]; }
+  let range=mx-mn; if(range<20) range=20; const pd=range*0.15; let lo=mn-pd, hi=mx+pd; const st=niceStep((hi-lo)/6); lo=Math.floor(lo/st)*st; hi=Math.ceil(hi/st)*st;
+  $('trYt').textContent=fmtSc(hi,true); $('trYb').textContent=fmtSc(lo,true);
+  const X=i=>(cw-1)*i/359, Y=v=>(chH-1)*(1-(v-lo)/(hi-lo)), Y2=v=>(chH-1)*(1-v/100);
+  function line(arr, col, ymap, width){ g.strokeStyle=col; g.lineWidth=width||3; g.lineJoin='round'; g.beginPath(); let up=true; for(let i=0;i<360;i++){ if(arr[i]==null){up=true;continue;} const x=X(i),y=ymap(arr[i]); if(up){g.moveTo(x,y);up=false;} else g.lineTo(x,y);} g.stroke(); }
+  if (traceOn(2)){
+    const grey=new Array(360).fill(null), red=new Array(360).fill(null), grn=new Array(360).fill(null);
+    for (let i=padN;i<360;i++){ const ph=phs[i], prev=i>padN?phs[i-1]:ph, next=i<359?phs[i+1]:ph; const act=ph!==0, edge=act&&(prev===0||next===0);
+      grey[i] = !act?2:(edge?25:null); red[i] = ph===1?25:null; grn[i] = (ph===2||(ph===1&&next===2))?25:null; }
+    line(grey,'#8B98A9',Y2); line(red,'#F87171',Y2); line(grn,'#4ADE80',Y2);
+  }
+  if (traceOn(1)) line(outs,'#FBBF24',Y2);
+  if (traceOn(0)) line(vals,'#22D3EE',Y);
+  const newest=(rg.next-1+360)%360;
+  $('trCur').textContent=fmtSc(rg.v[newest],true); $('trMin').textContent=fmtSc(mn,true); $('trMax').textContent=fmtSc(mx,true);
+}
+
+// ------------------------------------------------------------------ scope chart (ui_scope_push)
+const scC=$('scC');
+function renderScope(){
+  const H=S.health;
+  $('scVpp').textContent = H.vpp.toFixed(2)+' V';
+  const ph=$('scPhase'); if (H.state===2){ ph.textContent=Math.round(H.phase)+' %'; const dd=Math.abs(H.phase-50); ph.style.color = dd<=5?'#4ADE80':dd<=15?'#FBBF24':'#F87171'; } else { ph.textContent = H.state===1 ? '---' : '--'; ph.style.color='#8B98A9'; }
+  let fg=-1; if (S.flush) fg = S.flush.ok ? S.flush.h : -1; else if (H.state===2) fg = H.h;
+  const hv=$('scHealth'); if (fg>=0){ hv.textContent=Math.round(fg)+' %'; hv.style.color = fg>=85?'#4ADE80':fg>=60?'#FBBF24':'#F87171'; } else { hv.textContent = H.state===0 ? '--' : '---'; hv.style.color='#8B98A9'; }
+  $('scRpm').textContent = H.state>=1 ? Math.round(H.rpm) : '--';
+  $('nosig').style.display = H.state===0?'block':'none';
+  $('scDiag').textContent = (S.flush && S.flush.ok) ? 'Flush '+timeStr(S.flush.t).slice(0,5)+': '+Math.round(S.flush.h)+'%  '+S.flush.vpp.toFixed(2)+' V    Pulse '+Math.round(H.duty)+'%    Jitter '+H.jitter.toFixed(1)+'%    Drive '+H.sq.toFixed(2)+' V'
+    : S.flush ? 'Flush '+timeStr(S.flush.t).slice(0,5)+': too weak to grade ('+S.flush.vpp.toFixed(2)+' V)    Pulse '+Math.round(H.duty)+'%    Jitter '+H.jitter.toFixed(1)+'%'
+    : H.state===2 ? 'Live grade until the first flush    Pulse '+Math.round(H.duty)+'%    Jitter '+H.jitter.toFixed(1)+'%    Drive '+H.sq.toFixed(2)+' V'
+    : H.state===1 ? 'Sample too weak ('+H.vpp.toFixed(2)+' V); graded during each flush.  Motor '+Math.round(H.rpm)+' RPM'
+    : 'Sine (blue) and drive (amber), 512 ms window';
+  const card=scC.parentElement, W=card.clientWidth-24, Hh=card.clientHeight-24, cw=Math.round(W*0.96), ch=Math.round(Hh*0.88);
+  if (scC.width!==cw||scC.height!==ch){ scC.width=cw; scC.height=ch; }
+  scC.style.left=(Math.round((W-cw)/2)+12)+'px'; scC.style.top='12px';
+  const g=scC.getContext('2d'); g.clearRect(0,0,cw,ch); g.strokeStyle='#3A4656'; g.lineWidth=1;
+  for (let i=0;i<3;i++){ const y=Math.round((ch-1)*i/2)+0.5; g.beginPath(); g.moveTo(0,y); g.lineTo(cw,y); g.stroke(); }
+  for (let i=0;i<8;i++){ const x=Math.round((cw-1)*i/7)+0.5; g.beginPath(); g.moveTo(x,0); g.lineTo(x,ch); g.stroke(); }
+  const N=200; let s1=new Array(N), s2=new Array(N), m1=0,m2=0; for(let i=0;i<SCOPE_N;i++){m1+=sine[i];m2+=square[i];} m1/=SCOPE_N; m2/=SCOPE_N;
+  let amp=FS/32; for(let i=0;i<N;i++){ const idx=Math.floor(i*SCOPE_N/N); s1[i]=sine[idx]-m1; s2[i]=square[idx]-m2; amp=Math.max(amp,Math.abs(s1[i]),Math.abs(s2[i])); }
+  amp+=amp/8; if(!H.valid) amp=FS/2;
+  const Y=v=>(ch-1)*(0.5-v/(2*amp)), X=i=>(cw-1)*i/(N-1);
+  function line(a,col){ g.strokeStyle=col; g.lineWidth=2; g.beginPath(); for(let i=0;i<N;i++){ i?g.lineTo(X(i),Y(a[i])):g.moveTo(X(i),Y(a[i])); } g.stroke(); }
+  line(s2,'#FBBF24'); line(s1,'#33B5E5');
+}
+
+// ------------------------------------------------------------------ history popup
+let hiDays=7;
+function renderHist(){
+  document.querySelectorAll('#hist .hh .btn[data-d]').forEach(b=>b.classList.toggle('on', +b.dataset.d===hiDays));
+  const slots=hiDays*2, npts=slots+1, pNow=Math.floor(S.t/PERIOD), p0=pNow-slots;
+  const avg=new Array(npts).fill(null), mn=new Array(npts).fill(null); let low=1000, plotted=0;
+  const all = S.hist.slice(); const c=currentPeriod(); if (c) all.push(Object.assign({cur:true},c));
+  for (const r of all){ if (r.h==null) continue; const p = r.cur?pNow:Math.floor((r.t-1)/PERIOD); const s=p-p0; if(s<0||s>=npts) continue; avg[s]=r.h; mn[s]=r.hmin; low=Math.min(low,r.hmin); plotted++; }
+  let lo=80; while (lo>0 && low<lo) lo-=20;
+  for (let i=0;i<5;i++) $('hy'+i).textContent = Math.round(100 - i*(100-lo)/4);
+  const g=$('hiC').getContext('2d'), cw=704, ch=216, pv=12; g.clearRect(0,0,cw,ch); g.strokeStyle='#3A4656'; g.lineWidth=1;
+  for (let i=0;i<5;i++){ const y=pv+Math.round((ch-2*pv-1)*i/4)+0.5; g.beginPath(); g.moveTo(8,y); g.lineTo(cw-8,y); g.stroke(); }
+  const vd = hiDays===7?8:7; for (let i=0;i<vd;i++){ const x=8+Math.round((cw-17)*i/(vd-1))+0.5; g.beginPath(); g.moveTo(x,pv); g.lineTo(x,ch-pv); g.stroke(); }
+  const X=i=>8+(cw-17)*i/(npts-1), Y=v=>pv+(ch-2*pv-1)*(1-(v-lo)/(100-lo)), dot=hiDays===7?5:3;
+  function ser(a,col){ g.strokeStyle=col; g.fillStyle=col; g.lineWidth=3; g.beginPath(); let up=true; for(let i=0;i<npts;i++){ if(a[i]==null){up=true;continue;} const x=X(i),y=Y(a[i]); up?g.moveTo(x,y):g.lineTo(x,y); up=false; } g.stroke(); for(let i=0;i<npts;i++){ if(a[i]==null) continue; g.beginPath(); g.arc(X(i),Y(a[i]),dot,0,6.283); g.fill(); } }
+  ser(mn,'#8B98A9'); ser(avg,'#22D3EE');
+  const t0=p0*PERIOD; $('hx0').textContent = MON[tm(t0).mo-1]+' '+pad2(tm(t0).d); const tmid=t0+hiDays*PERIOD; $('hx1').textContent = MON[tm(tmid).mo-1]+' '+pad2(tm(tmid).d);
+  const em=$('hiEmpty'); if(!plotted){ em.textContent='No readable signal yet'; em.style.display='block'; } else em.style.display='none';
+  $('hiLeg').innerHTML = '<span style="color:#22D3EE">&#9632;</span> 12 h average &nbsp;&nbsp;&nbsp; <span style="color:#8B98A9">&#9632;</span> lowest 1-min average &nbsp;&nbsp;&nbsp; '+S.hist.length+' / 120 periods stored';
+  let s; if (!c) s='This period: no data yet. A point is added every 12 hours (00:00 and 12:00).';
+  else if (c.h==null) s='This period ('+(c.min/60).toFixed(1)+' h): no readable sensor signal  |  sine '+c.vpp.toFixed(2)+' V';
+  else s='This period ('+(c.min/60).toFixed(1)+' h): avg '+c.h.toFixed(1)+' %, low '+c.hmin.toFixed(1)+' %  |  signal '+c.sig+' %  |  '+c.rpm.toFixed(1)+' RPM (spread '+Math.min(25.5,c.span).toFixed(1)+')  |  sine '+c.vpp.toFixed(2)+' V';
+  $('hiSum').textContent=s;
+}
+
+// ------------------------------------------------------------------ files + service screens
+// The configuration file: plain "name = value" text, as the firmware writes it (CFG_KEYS in the .ino).
+const CFG_KEYS = [
+  ['alarm_low_mv','alarmLow',-1000,1000,3], ['alarm_high_mv','alarmHigh',-1000,1000,3], ['health_alarm_pct','healthLimit',0,100,0],
+  ['avg_samples','avg',1,1000,0], ['pid_setpoint_mv','sp',-1000,1000,3], ['pid_action_reverse','rev',0,1,'b'], ['pid_gain','kp',0.01,100,3],
+  ['pid_integral_s','ti',0,3600,0], ['pid_output_min_pct','outMin',0,100,3], ['pid_output_max_pct','outMax',0,100,3], ['pid_powerup_mode','pwrup',0,2,0], ['pid_powerup_manual_pct','pwrupOut',0,100,3],
+  ['clean_interval_hr','cleanIntHr',0,168,3], ['clean_flush_s','flushS',1,600,0], ['clean_recover_s','recovS',0,600,0],
+  ['input1_function','di1Func',0,4,0], ['input1_active_closed','di1Low',0,1,'b'], ['input2_function','di2Func',0,4,0], ['input2_active_closed','di2Low',0,1,'b'],
+  ['diag_relay_failsafe','frelayFs',0,1,'b'], ['alarm_relays_failsafe','arelayFs',0,1,'b'], ['display_divisor','dispDiv',1,100,0], ['brightness_pct','bright',10,100,0],
+  ['log_interval_min','logInt',1,1440,0], ['cal_reminder_days','calInt',0,730,0],
+];
+const CAL_KEYS = [['zero_offset_mv','zero',3],['input_volts_at_4ma','calVmin',3],['input_volts_at_20ma','calVmax',3],['reading_out_4ma','dac4',0],['reading_out_20ma','dac20',0],['dose_out_4ma','dose4',0],['dose_out_20ma','dose20',0]];
+function cfgExport(){
+  if (!S.usb){ S.cfgIo='No USB stick'; return; }
+  const fmt=(v,p)=> p==='b' ? (v?1:0) : p ? (+v).toFixed(p) : Math.round(v);
+  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.56, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
+  CFG_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[4])));
+  rows.push('','# Calibration of the unit this file came from. For the record only:','# these lines are NOT read back by Import.');
+  CAL_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
+  S.files['SCM_Config.txt']={ rows, kind:'export', col:'#E6EDF3' };
+  S.cfgIo='Saved SCM_Config.txt ('+(CFG_KEYS.length+CAL_KEYS.length)+' settings). Safe to remove the stick.'; renderUsb('SCM_Config.txt');
+}
+function cfgImport(){
+  if (!S.usb){ S.cfgIo='No USB stick'; return; }
+  const f=S.files['SCM_Config.txt']; if (!f){ S.cfgIo='SCM_Config.txt not found on the stick'; return; }
+  let ok=0, skip=0;
+  f.rows.forEach(line=>{ const t=line.trim(); if(!t||t[0]==='#') return; const m=/^(\w+)\s*=\s*(-?[\d.]+)/.exec(t); if(!m){skip++;return;}
+    if (CAL_KEYS.some(k=>k[0]===m[1])) return; const k=CFG_KEYS.find(k=>k[0]===m[1]); const v=+m[2];
+    if (!k || isNaN(v) || v<k[2] || v>k[3]){ skip++; return; } S[k[1]] = k[4]==='b' ? v!==0 : v; ok++; });
+  if (![1,10,100].includes(S.dispDiv)) S.dispDiv=1; if (S.outMax<=S.outMin){ S.outMin=0; S.outMax=100; }
+  S.out=clamp(S.out,S.outMin,S.outMax); applyBright();
+  S.cfgIo='Imported '+ok+' settings'+(skip?', '+skip+' lines skipped':'');
+}
+function buildFilesMenu(){
+  const m=$('fiMenu'); m.innerHTML='';
+  [['list','Data logging',()=>{S.fiPage=1;renderFiles();}],
+   ['upload','Export configuration',()=>{cfgExport();renderFiles();}],
+   ['download','Import configuration',()=>confirm('Import configuration?','Reads SCM_Config.txt from the USB stick and replaces the settings on this unit. Calibration, zero and the service PIN are not changed.',cfgImport)]
+  ].forEach(it=>{ const r=document.createElement('div'); r.className='mrow';
+    r.innerHTML='<svg viewBox="0 0 24 24"><path d="'+ICONS[it[0]]+'"/></svg><span></span><span class="ar">&#8250;</span>'; r.querySelector('span').textContent=it[1]; r.onclick=it[2]; m.appendChild(r); });
+  const st=document.createElement('div'); st.className='st'; st.id='fiCfgSt'; m.appendChild(st);
+  // the Export data page: one row per window (0.9.56)
+  const l=$('fiExpList'); l.innerHTML='';
+  EXPORT.forEach((e,i)=>{ const r=document.createElement('div'); r.className='mrow';
+    r.innerHTML='<svg viewBox="0 0 24 24"><path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"/></svg><span></span><span class="ar">&#8250;</span>'; r.querySelector('span').textContent=e.name; r.onclick=()=>{ doExport(i); renderFiles(); }; l.appendChild(r); });
+}
+function renderFiles(){
+  $('fiMenu').style.display=S.fiPage?'none':'flex'; $('fiStrip').style.display=S.fiPage?'flex':'none';
+  $('fiLogPage').style.display=S.fiPage===1?'flex':'none'; $('fiExpPage').style.display=S.fiPage===2?'flex':'none';
+  $('fiTitle').textContent = S.fiPage===2 ? 'Export data' : 'Data logging';
+  $('fiCfgSt').textContent=S.cfgIo;
+  const paused = !S.usb; const fl=$('fiLog');
+  void paused; fl.textContent='every '+S.logInt+' min  \u203A'; fl.style.color='#4ADE80';
+  $('fiRows').textContent = S.rowsToday;
+  const dayFiles = Object.keys(S.files).filter(k=>S.files[k].kind==='day' && !k.includes('_clean')).length;
+  let bytes = 0; for (const k in S.files) if (S.files[k].kind==='day') bytes += S.files[k].rows.length*62;
+  const ff=$('fiFile'); ff.textContent = dayFiles+' day'+(dayFiles===1?'':'s')+', '+(bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':Math.round(bytes/1024)+' KB')+' of 7 MB'; ff.style.color='#E6EDF3';
+  const fu=$('fiUsb'); fu.textContent=S.usb?'ready':'no drive'; fu.style.color=S.usb?'#4ADE80':'#8B98A9';
+  const fx=$('fiLast'); if (S.lastExport){ fx.textContent=S.lastExport; fx.style.color='#22D3EE'; } else { fx.textContent='not yet'; fx.style.color='#8B98A9'; }
+  const st2 = S.usb ? S.exportStatus : 'Insert a FAT32 USB drive to export.';
+  $('fiStatus').textContent=st2; $('fiExpStatus').textContent=st2;
+}
+function renderService(){
+  const cs=calStatus(), st=$('svState');
+  if (cs.st==='off'){ st.textContent='Reminder off'; st.style.color='#8B98A9'; }
+  else if (cs.st==='ok'){ st.textContent='OK - due in '+cs.d+' day'+(cs.d===1?'':'s'); st.style.color='#4ADE80'; }
+  else { st.textContent = cs.d===0?'DUE today':'OVERDUE '+cs.d+' day'+(cs.d===1?'':'s'); st.style.color='#F87171'; }
+  $('svLast').textContent = dateStr(S.calLast);
+  $('svDrive').textContent = (S.relayLow?'Active low':'Active high')+'  \u203A';
+  $('svInt').textContent = (S.calInt===0?'Off':S.calInt+' days  (next '+dateStr(S.calLast+S.calInt*86400)+')')+'  \u203A';
+  const un=unlocked();
+  document.querySelectorAll('#service .btn.g').forEach(b=>b.classList.toggle('off',!un));
+  const ub=$('svUnlock'); ub.innerHTML = un?'&#10005;&nbsp; Lock':'&#9673;&nbsp; Unlock'; ub.style.background=un?'#1B2635':'#22D3EE'; ub.style.color=un?'#E6EDF3':'#0B0F14';
+  $('svPid').textContent='PID: '+(S.featPid?'On':'Off'); $('svClean').textContent='Clean: '+(S.featClean?'On':'Off');
+  let m; if (un){ const r=Math.max(0,Math.round((S.unlockedUntil-Date.now())/1000)); m='Unlocked - locks in '+Math.floor(r/60)+':'+pad2(r%60)+(S.svcStatus?'   |   '+S.svcStatus:''); }
+  else if (S.svcStatus) m=S.svcStatus; else if (cs.st==='due') m='Calibration is due. Contact your service provider. The instrument keeps working normally.'; else m='Locked. The service PIN is needed to make changes.';
+  $('svMsg').textContent=m;
+}
+
+// ------------------------------------------------------------------ config (CFG_GROUPS: a scrolling menu of six groups, each a scrolling list)
+const ICONS = {
+  bell:'M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.1-1.6-5.6-4.5-6.3V4a1.5 1.5 0 0 0-3 0v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1z',
+  drop:'M12 2s-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z',
+  refresh:'M17.65 6.35A8 8 0 1 0 19.7 14h-2.1a6 6 0 1 1-1.4-6.2L13 11h7V4z',
+  io:'M4 7h11l-3-3 1.4-1.4L18.8 8l-5.4 5.4L12 12l3-3H4zM20 17H9l3 3-1.4 1.4L5.2 16l5.4-5.4L12 12l-3 3h11z',
+  display:'M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H7v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v9h16V6z',
+  list:'M4 6h2v2H4zm4 0h12v2H8zM4 11h2v2H4zm4 0h12v2H8zM4 16h2v2H4zm4 0h12v2H8z',
+  upload:'M5 20h14v-2H5zM12 3l-6 6h4v6h4V9h4z',
+  download:'M5 20h14v-2H5zM12 16l6-6h-4V4h-4v6H6z',
+  wrench:'M22.7 19 13.6 9.9a6 6 0 0 0-7.7-7.7l3.7 3.7-2.8 2.8L3.1 5A6 6 0 0 0 10.8 12.7l9.1 9.1a1 1 0 0 0 1.4 0l1.4-1.4a1 1 0 0 0 0-1.4z',
+  bolt:'M11 21h-1l1-7H7.5c-.6 0-.6-.3-.4-.7L13 3h1l-1 7h3.5c.5 0 .6.3.3.7L11 21z'
+};
+const GROUPS = [
+  {name:'Sensor & alarms', icon:'bell', rows:[ {n:'Low alarm', f:'alarmLow'}, {n:'High alarm', f:'alarmHigh'}, {n:'Signal Health limit', f:'hlimit'}, {n:'Averaging (samples)', f:'avg'}, {n:'Input @ 4 mA  (-1000 mV)', f:'calVmin'}, {n:'Input @ 20 mA (+1000 mV)', f:'calVmax'} ]},
+  {name:'Dosing (PID)', icon:'drop', feat:'pid', rows:[ {n:'Setpoint', f:'sp'}, {n:'Controller action', t:'dir'}, {n:'Manual dose output', f:'manout'}, {n:'Gain', f:'kp'}, {n:'Integral time', f:'ti'}, {n:'Output minimum', f:'outMin'}, {n:'Output maximum', f:'outMax'}, {n:'Mode at power-up', t:'pwrup'}, {n:'Power-up manual output', f:'pwrupOut', vis:()=>S.pwrup===0} ]},
+  {name:'Cleaning', icon:'refresh', feat:'clean', rows:[ {n:'Interval (0 = off)', f:'cleanIntHr'}, {n:'Flush time', f:'flushS'}, {n:'Recover time', f:'recovS'} ]},
+  {name:'Inputs & outputs', icon:'io', rows:[ {n:'Digital input 1', t:'di1'}, {n:'Input 1 active when', t:'di1pol', vis:()=>S.di1Func!==0}, {n:'Digital input 2', t:'di2'}, {n:'Input 2 active when', t:'di2pol', vis:()=>S.di2Func!==0}, {n:'Diagnostic relay', t:'frelay'}, {n:'Alarm relays', t:'arelay'}, {n:'Reading output module', t:'rtmod'}, {n:'Reading out @ 4 mA', f:'dac4'}, {n:'Reading out @ 20 mA', f:'dac20'}, {n:'Dose out @ 4 mA', f:'dose4'}, {n:'Dose out @ 20 mA', f:'dose20'} ]},
+  {name:'Display & clock', icon:'display', rows:[ {n:'Main readout', t:'mode'}, {n:'Display range', t:'range'}, {n:'Brightness', t:'bright'}, {n:'Date', f:'date'}, {n:'Time', f:'time'} ]},
+  {name:'Service', icon:'wrench', screen:'service', rows:[]},
+  {name:'Wiring', icon:'bolt', rows:[
+    {n:'A0', w:['Sensor input: 4-20 mA as 0.53-2.61 V','The reading. Calibrated in Sensor & alarms']},
+    {n:'A1', w:['Sensor sine wave (Signal Health)','Probe waveform: Scope plot and flush grade']},
+    {n:'A2', w:['Drive square wave (Signal Health)','Motor reference: RPM, phase, pulse width']},
+    {n:'D2 / D3', w:['TM1637 LED readout: CLK D2, DIO D3','Backup 4-digit display. Two-wire, not I2C']},
+    {n:'D4', w:['Digital input 2: dry contact to GND','Volt-free only. Set in Inputs & outputs']},
+    {n:'D5', w:['Digital input 1: dry contact to GND','Flow switch, hold, clean or AUTO']},
+    {n:'D6', w:['Diagnostic relay','Fault / health / no flow / cal due']},
+    {n:'D7', w:['Flush valve relay','Energised during the FLUSH phase only']},
+    {n:'D8', w:['High alarm relay','On alarm or fail-safe (Inputs & outputs)']},
+    {n:'D12', w:['Low alarm relay','Same sense setting as the high relay']},
+    {n:'D20 / D21', w:['I2C bus: SDA on D20, SCL on D21','One pull-up pair; modules and clock share it']},
+    {n:'I2C 0x5C', w:['Reading output: GP8630N, 16-bit, 4-20 mA','New board, DIP 1-0-0. Reading to the plant']},
+    {n:'I2C 0x58', w:['Reading output: GP8302, 12-bit (old board)','Used only when no GP8630N answers']},
+    {n:'I2C 0x5E', w:['Dose output: GP8600, 0-20 mA mode','Jumpers A2=1 A1=1 A0=0. 4 mA = pump stopped']},
+    {n:'I2C 0x68', w:['Clock chip DS3231, battery backed','Log timestamps. Set in Display & clock']},
+    {n:'USB-A', w:['USB stick, FAT32','Written only on export or config save']},
+    {n:'Relays', w:['All four: pin LOW = energised by default','Polarity is a Service setting']},
+    {n:'Loops', w:['Each 4-20 mA loop needs its own supply','Usually 24 V. Modules run on 3.3-5 V logic']},
+  ]},
+];
+const FIELD = {
+  alarmLow:{title:'Low Alarm', hint:()=>fmtSc(-1000,false)+' to '+fmtSc(1000,true), get:()=>fmtSc(S.alarmLow,true), set:v=>{S.alarmLow=clamp(v*S.dispDiv,-1000,1000);}},
+  alarmHigh:{title:'High Alarm', hint:()=>fmtSc(-1000,false)+' to '+fmtSc(1000,true), get:()=>fmtSc(S.alarmHigh,true), set:v=>{S.alarmHigh=clamp(v*S.dispDiv,-1000,1000);}},
+  avg:{title:'Averaging (samples)', hint:'1 - 1000', get:()=>S.avg, set:v=>{S.avg=clamp(Math.round(v),1,1000);}},
+  calVmin:{title:'Input @ 4 mA  (-1000 mV)', hint:'volts at the A0 pin (0 - 3.3)', get:()=>S.calVmin.toFixed(3), set:v=>{S.calVmin=clamp(v,0,3.3);}},
+  calVmax:{title:'Input @ 20 mA  (+1000 mV)', hint:'volts at the A0 pin (0 - 3.3)', get:()=>S.calVmax.toFixed(3), set:v=>{S.calVmax=clamp(v,0,3.3);}},
+  dac4:{title:'Reading out @ 4 mA', hint:'DAC counts 0 - 4095 (meter on the reading loop)', get:()=>S.dac4, set:v=>{S.dac4=clamp(Math.round(v),0,4095);}, live:v=>'Loop meter: '+(4+16*clamp(v,0,4095)/4095*1.0).toFixed(2)+' mA (simulated)'},
+  dac20:{title:'Reading out @ 20 mA', hint:'DAC counts 0 - 4095 (meter on the reading loop)', get:()=>S.dac20, set:v=>{S.dac20=clamp(Math.round(v),0,4095);}},
+  cleanIntHr:{title:'Clean interval, hours', hint:'0 - 168  (0 = auto-clean off)', get:()=>S.cleanIntHr>0?S.cleanIntHr.toFixed(2)+' hr':'Off', set:v=>{S.cleanIntHr=clamp(v,0,168);}},
+  flushS:{title:'Clean flush time, s', hint:'1 - 600', get:()=>S.flushS+' s', set:v=>{S.flushS=clamp(Math.round(v),1,600);}},
+  recovS:{title:'Clean recover time, s', hint:'0 - 600', get:()=>S.recovS+' s', set:v=>{S.recovS=clamp(Math.round(v),0,600);}},
+  sp:{title:'PID setpoint', hint:()=>fmtSc(-1000,false)+' to '+fmtSc(1000,true), get:()=>fmtSc(S.sp,true)+unit(), set:v=>{S.sp=clamp(v*S.dispDiv,-1000,1000);}},
+  kp:{title:'PID gain', hint:'0.01 - 100', get:()=>S.kp.toFixed(3), set:v=>{S.kp=clamp(v,0.01,100);}},
+  ti:{title:'PID integral time, s', hint:'1 - 3600  (0 = integral off)', get:()=>S.ti>0?S.ti+' s':'Off', set:v=>{S.ti=clamp(Math.round(v),0,3600);}},
+  outMin:{title:'PID output min (%)', hint:'0 - 100, below max', get:()=>S.outMin.toFixed(1)+' %', set:v=>{S.outMin=clamp(v,0,Math.min(100,S.outMax-1));}},
+  pwrupOut:{title:'Power-up manual output (%)', hint:'dose output the unit starts at in MANUAL (0 = pump stopped)', get:()=>S.pwrupOut.toFixed(1)+' %', set:v=>{S.pwrupOut=clamp(v,0,100);}},
+  outMax:{title:'PID output max (%)', hint:'0 - 100, above min', get:()=>S.outMax.toFixed(1)+' %', set:v=>{S.outMax=clamp(v,S.outMin+1,100);}},
+  manout:{title:'Manual dose output (%)', hint:'sets the pump in MANUAL mode', get:()=>S.out.toFixed(1)+' %', set:v=>{ if(!S.pidAuto) S.out=clamp(v,S.outMin,S.outMax); }},
+  tomanual:{title:()=>S.pidAuto?'Switch to MANUAL':'Dose output (MANUAL)', hint:()=>S.pidAuto?'dose output % to hold from now on (Cancel keeps AUTO)':'Enter sets the pump output.  AUTO hands over to the controller.', pre:()=>S.out.toFixed(1), set:v=>{ S.pidAuto=false; S.out=clamp(v,S.outMin,S.outMax); }},
+  dose4:{title:'Dose out @ 4 mA', hint:'DAC counts 0 - 65535 (meter on the pump loop)', get:()=>S.dose4, set:v=>{S.dose4=clamp(Math.round(v),0,65535);}},
+  dose20:{title:'Dose out @ 20 mA', hint:'DAC counts 0 - 65535 (meter on the pump loop)', get:()=>S.dose20, set:v=>{S.dose20=clamp(Math.round(v),0,65535);}},
+  hlimit:{title:'Signal Health limit', hint:'% (0 = off). A minute below it trips the diagnostic relay', get:()=>S.healthLimit?S.healthLimit+' %':'Off', set:v=>{S.healthLimit=clamp(Math.round(v),0,100); if(!S.healthLimit) S.healthAlarm=false;}},
+  logInt:{title:'Log interval, minutes', hint:'1 - 1440, on the clock (15 = :00, :15, :30, :45)', get:()=>S.logInt+' min', set:v=>{S.logInt=clamp(Math.round(v),1,1440);}},
+  date:{title:'Set date', hint:'YYYYMMDD, e.g. 20260902', get:()=>dateStr(S.t), pre:()=>'', set:v=>{ const s=String(Math.round(v)); if(s.length!==8) return; const x=tm(S.t); const d=new Date(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8),x.h,x.mi,x.s); if(!isNaN(d)) S.t=Math.floor(d.getTime()/1000); }},
+  time:{title:'Set time (24h)', hint:'HHMM, e.g. 1435', get:()=>timeStr(S.t,true), pre:()=>'', set:v=>{ const n=Math.round(v); if(n<0||n>2359||n%100>59) return; const x=tm(S.t); const d=new Date(x.y,x.mo-1,x.d,Math.floor(n/100),n%100,0); S.t=Math.floor(d.getTime()/1000); }},
+  pin:{title:'Service PIN', hint:'Enter the service PIN to unlock', mask:true, pre:()=>'', set:null},
+  newpin:{title:'New service PIN', hint:'4 to 6 digits', mask:true, pre:()=>'', set:null},
+  calInt:{title:'Calibration interval', hint:'days (90 = 3 months, 180 = 6 months, 0 = off)', pre:()=>S.calInt, set:v=>{S.calInt=clamp(Math.round(v),0,730);}},
+};
+function buildMenu(){
+  const m=$('cfgMenu'); m.innerHTML='';
+  GROUPS.forEach((G,i)=>{
+    const r=document.createElement('div'); r.className='mrow'; r.dataset.i=i;
+    r.innerHTML='<svg viewBox="0 0 24 24"><path d="'+ICONS[G.icon]+'"/></svg><span></span><span class="ar">&#8250;</span>';
+    r.querySelector('span').textContent=G.name;
+    r.onclick=()=>{ if (G.screen){ show(G.screen); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
+    m.appendChild(r);
+  });
+  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.56</span>'; m.appendChild(fw);
+}
+function groupVisible(i){ const G=GROUPS[i]; return !(G.feat==='pid'&&!S.featPid) && !(G.feat==='clean'&&!S.featClean); }
+function renderConfig(){
+  if (S.cfgGroup>=0 && !groupVisible(S.cfgGroup)) S.cfgGroup=-1;
+  const home = S.cfgGroup<0;
+  $('cfgMenu').style.display=home?'flex':'none'; $('cfgStrip').style.display=home?'none':'flex'; $('rows').style.display=home?'none':'flex';
+  document.querySelectorAll('#cfgMenu .mrow').forEach(r=>{ r.style.display=groupVisible(+r.dataset.i)?'flex':'none'; });
+  if (home) return;
+  const G=GROUPS[S.cfgGroup]; $('cfgTitle').textContent=G.name;
+  const box=$('rows'); const keep=box.scrollTop; box.innerHTML='';
+  G.rows.filter(r=>!r.vis||r.vis()).forEach(r=>{
+    const d=document.createElement('div'); d.className='crow2'; const n=document.createElement('span'); n.className='n'; n.textContent=r.n; d.appendChild(n);
+    const v=document.createElement('span'); v.className='v';
+    if (r.w){ d.classList.add('ro'); n.style.color='#22D3EE'; v.style.cssText='color:#E6EDF3;font-size:20px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;position:absolute;left:150px;right:12px;top:7px'; v.innerHTML=r.w[0]+'<br><span style="color:#8B98A9">'+r.w[1]+'</span>'; }
+    else if (r.f){ v.textContent=FIELD[r.f].get(); d.onclick=()=>openEditor(r.f); }
+    else switch(r.t){
+      case 'rtmod': d.classList.add('ro'); v.textContent='GP8630N @ 0x5C'; v.style.color='#8B98A9'; break;
+      case 'mode': v.textContent=S.showAbs?'Absolute':'Relative'; d.onclick=()=>{S.showAbs=!S.showAbs;renderConfig();}; break;
+      case 'range': v.textContent=S.dispDiv===100?'+/-10.00':S.dispDiv===10?'+/-100.0':'+/-1000 mV'; d.onclick=()=>{S.dispDiv=S.dispDiv===1?10:S.dispDiv===10?100:1;renderConfig();}; break;
+      case 'bright': { d.classList.add('ro'); const w=document.createElement('span'); w.className='slider'; const inp=document.createElement('input'); inp.type='range'; inp.min=10; inp.max=100; inp.value=S.bright; inp.id='brightSl'; const lab=document.createElement('span'); lab.className='v'; lab.textContent=S.bright+' %'; inp.oninput=()=>{S.bright=+inp.value; lab.textContent=S.bright+' %'; applyBright();}; w.appendChild(inp); w.appendChild(lab); d.appendChild(w); box.appendChild(d); return; }
+      case 'dir': v.textContent=S.rev?'Reverse':'Direct'; d.onclick=()=>{S.rev=!S.rev;renderConfig();}; break;
+      case 'pwrup': v.textContent=S.pwrup===2?'Auto':S.pwrup===1?'Last state':'Manual '+Math.round(S.pwrupOut)+'%'; d.onclick=()=>{S.pwrup=(S.pwrup+1)%3;renderConfig();}; break;
+      case 'di1': v.textContent=['Off','Flow switch','Remote hold','Remote clean','Remote AUTO'][S.di1Func]; d.onclick=()=>{S.di1Func=(S.di1Func+1)%5;renderConfig();}; break;
+      case 'di1pol': v.textContent=S.di1Low?'Contact closed':'Contact open'; d.onclick=()=>{S.di1Low=!S.di1Low;renderConfig();}; break;
+      case 'di2': v.textContent=['Off','Flow switch','Remote hold','Remote clean','Remote AUTO'][S.di2Func]; d.onclick=()=>{S.di2Func=(S.di2Func+1)%5;renderConfig();}; break;
+      case 'di2pol': v.textContent=S.di2Low?'Contact closed':'Contact open'; d.onclick=()=>{S.di2Low=!S.di2Low;renderConfig();}; break;
+      case 'arelay': v.textContent=S.arelayFs?'Fail-safe':'On alarm'; d.onclick=()=>{S.arelayFs=!S.arelayFs;renderConfig();}; break;
+      case 'frelay': v.textContent=S.frelayFs?'Fail-safe':'On fault'; d.onclick=()=>{S.frelayFs=!S.frelayFs;renderConfig();}; break;
+    }
+    d.appendChild(v); box.appendChild(d);
+  });
+  box.scrollTop=keep;
+}
+function applyBright(){ dev.style.filter = 'brightness('+(0.35+0.65*S.bright/100)+')'; }
+
+// ------------------------------------------------------------------ editor (keypad)
+let edField=null, edText='';
+const KEYS=['7','8','9','⌫','4','5','6','Clear','1','2','3','+/-','0','.','Cancel','Enter'];
+const KEYS_PID=['7','8','9','⌫','4','5','6','Clear','1','2','3','AUTO','0','.','Cancel','Enter'];
+let kbKeys=null;
+function buildKb(keys){ if (kbKeys===keys) return; kbKeys=keys; const kb=$('kb'); kb.innerHTML=''; keys.forEach(k=>{ const d=document.createElement('div'); d.className='k'+(k==='AUTO'?' auto':''); d.textContent=k; d.onclick=()=>key(k); kb.appendChild(d); }); }
+function openEditor(f){
+  const F=FIELD[f]; edField=f; edText = F.pre ? String(F.pre()) : String(F.get()).replace(/[^0-9.+-]/g,'').replace(/^\+/,'');
+  if (f==='manout') edText = S.out.toFixed(1);
+  buildKb(f==='tomanual' && !S.pidAuto ? KEYS_PID : KEYS);
+  $('edT').textContent=typeof F.title==='function'?F.title():F.title; $('edH').textContent=typeof F.hint==='function'?F.hint():F.hint; $('edL').textContent='';
+  renderEd(); $('editor').classList.add('on');
+}
+function renderEd(){ const F=FIELD[edField]; $('edV').textContent = F.mask ? '•'.repeat(edText.length) : edText; $('edL').textContent = (F.live && edText!=='')? F.live(+edText) : ''; }
+function key(k){
+  if (k==='Enter'){ applyEdit(); closeEd(); return; }
+  if (k==='Cancel'){ closeEd(); return; }
+  if (k==='AUTO'){ closeEd(); if (!S.fault) confirm('Switch PID to AUTO?','The controller takes over from the present dose output, with no step at the pump.',()=>{ S.pidAuto=true; const e=((S.sp-relHeld())/SPAN)*100*(S.rev?1:-1); S.integ=S.out-S.kp*e; }); return; }
+  if (k==='Clear') edText=''; else if (k==='⌫') edText=edText.slice(0,-1);
+  else if (k==='+/-') edText = edText.startsWith('-')?edText.slice(1):'-'+edText;
+  else if (edText.length<10) edText+=k;
+  renderEd();
+}
+function closeEd(){ $('editor').classList.remove('on'); edField=null; }
+function applyEdit(){
+  const f=edField;
+  if (f==='pin'){ tryUnlock(edText); renderService(); return; }
+  if (f==='newpin'){ if (/^\d{4,6}$/.test(edText)){ S.pin=edText; S.svcStatus='PIN changed'; } else S.svcStatus='PIN must be 4 to 6 digits'; touch(); renderService(); return; }
+  const v=parseFloat(edText); if (isNaN(v)) return;
+  FIELD[f].set(v); touch(); renderAll();
+}
+
+// ------------------------------------------------------------------ confirm
+let cfAction=null;
+function confirm(q,s,fn){ $('cfQ').textContent=q; $('cfS').textContent=s; cfAction=fn; $('confirm').classList.add('on'); }
+$('cfNo').onclick=()=>{ $('confirm').classList.remove('on'); cfAction=null; };
+$('cfYes').onclick=()=>{ $('confirm').classList.remove('on'); const a=cfAction; cfAction=null; if(a) a(); renderAll(); };
+
+// ------------------------------------------------------------------ navigation + events
+function show(s){
+  $('hist').classList.remove('on');
+  if (S.screen==='service' && s!=='service') lock();
+  if (s==='config' && S.screen!=='config'){ S.cfgGroup=-1; $('cfgMenu').scrollTop=0; }   // always arrive at the menu
+  if (s==='files' && S.screen!=='files') S.fiPage=0;
+  S.screen=s;
+  document.querySelectorAll('.scr').forEach(e=>e.classList.toggle('on', e.id===s));
+  document.querySelectorAll('#nav .it').forEach(e=>e.classList.toggle('on', e.dataset.s===s));
+  renderAll();
+}
+document.querySelectorAll('#nav .it').forEach(e=>e.onclick=()=>{
+  // the rail item of the current screen is its Back (Config group -> menu, Data logging -> Files menu)
+  if (e.dataset.s===S.screen){ if (S.screen==='config'){ S.cfgGroup=-1; renderConfig(); } if (S.screen==='files'){ S.fiPage=0; renderFiles(); } return; }
+  show(e.dataset.s); });
+$('bLow').onclick=()=>openEditor('alarmLow'); $('bHigh').onclick=()=>openEditor('alarmHigh');
+$('bZero').onclick=()=>confirm('Zero the reading?','The current reading becomes the new zero. Relative readings are measured from it.',()=>{S.zero=S.held;});
+$('bClean').onclick=()=>{ if(S.cleanActive) return; confirm('Start a clean cycle?','Opens the flush valve for '+S.flushS+' s, then holds the reading for '+S.recovS+' s while the sensor recovers.',startClean); };
+$('bPid').onclick=()=>{ if(!S.doseReady || S.fault) return; openEditor('tomanual'); };
+$('scmMode').onclick=()=>{ S.showAbs=!S.showAbs; renderAll(); };
+$('bWin').onclick=()=>{ const i=ORDER.indexOf(S.trendScale); S.trendScale=ORDER[(i+1)%7]; renderTrend(); };
+document.querySelectorAll('#chips .chipb').forEach(c=>c.onclick=()=>{ S.traces^=(1<<+c.dataset.i); renderTrend(); });
+$('tHealth').onclick=()=>{ renderHist(); $('hist').classList.add('on'); };
+$('histX').onclick=()=>$('hist').classList.remove('on');
+document.querySelectorAll('#hist .hh .btn[data-d]').forEach(b=>b.onclick=()=>{ hiDays=+b.dataset.d; renderHist(); });
+$('fiExpOpen').onclick=()=>{S.fiPage=2;renderFiles();};
+$('cfgBack').onclick=()=>{S.cfgGroup=-1;renderConfig();};
+$('fiLogRow').onclick=()=>openEditor('logInt');
+$('fiBack').onclick=()=>{S.fiPage=S.fiPage===2?1:0;renderFiles();};
+$('caldue').onclick=()=>show('service');
+$('svUnlock').onclick=()=>{ if(unlocked()){ lock(); renderService(); } else openEditor('pin'); };
+$('svMark').onclick=()=>{ if(!unlocked()) return; touch(); confirm('Record calibration as done?', S.calInt?'Records today as the last calibration. The next reminder falls due in '+S.calInt+' days.':'Records today as the last calibration. The reminder is currently off.', ()=>{ S.calLast=S.t; S.svcStatus='Calibration recorded'; }); };
+$('svIntRow').onclick=()=>{ if(!unlocked()) return; touch(); openEditor('calInt'); };
+$('svDriveRow').onclick=()=>{ if(!unlocked()) return; touch(); S.relayLow=!S.relayLow; renderService(); };
+$('svZero').onclick=()=>{ if(!unlocked()) return; touch(); confirm('Clear the zero offset?','Relative readings will equal the Absolute reading again. The present zero offset is '+S.zero.toFixed(1)+' mV.',()=>{ S.zero=0; S.svcStatus='Zero offset cleared - Relative now equals Absolute'; }); };
+$('svPin').onclick=()=>{ if(!unlocked()) return; touch(); openEditor('newpin'); };
+$('svPid').onclick=()=>{ if(!unlocked()) return; touch(); S.featPid=!S.featPid; if(!S.featPid){S.pidAuto=false;S.out=0;} renderAll(); };
+$('svClean').onclick=()=>{ if(!unlocked()) return; touch(); S.featClean=!S.featClean; renderAll(); };
+$('svReset').onclick=()=>{ if(!unlocked()) return; touch(); confirm('Reset all settings?','Restores calibration, alarms, clean timings, PID and zero offset to factory defaults, and marks calibration due. Keeps the service PIN.',()=>{ const keep={pin:S.pin,calInt:S.calInt}; Object.assign(S,DEF,keep); S.pidAuto=false; S.out=0; S.calLast=S.t-S.calInt*86400; applyBright(); }); };
+// screenshot gesture on the logo: just a toast here
+let lp; $('logo').onpointerdown=()=>{ lp=setTimeout(()=>toast('Screenshot: on the real unit this writes screen_NNN.bmp to the USB stick'),700); }; $('logo').onpointerup=$('logo').onpointerleave=()=>clearTimeout(lp);
+function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',2600); }
+
+// scenario panel
+document.querySelectorAll('.sc').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.sc[data-g="'+b.dataset.g+'"]').forEach(x=>x.classList.toggle('on',x===b));
+  const v=b.dataset.v;
+  switch(b.dataset.g){
+    case 'process': S.process=v; break;
+    case 'sensor': S.sensor=v; break;
+    case 'dac': S.doseReady = v==='on'; break;
+    case 'flow': S.flowSwitch = v==='on'; break;
+    case 'usb': S.usb = v==='in'; S.exportStatus = S.usb?'USB connected':'USB removed'; break;
+    case 'speed': S.speed=+v; break;
+  }
+  renderAll();
+});
+$('bCalDue').onclick=()=>{ S.calLast = S.t - S.calInt*86400 - 3*86400; renderAll(); };
+$('bReset').onclick=()=>{ boot(); };
+
+// USB stick panel
+function renderUsb(openName){
+  const list=$('usbList'); list.innerHTML='';
+  const names=Object.keys(S.files).sort((a,b)=>a<b?1:-1);
+  if (!names.length){ list.innerHTML='<div class="note">Empty. A row is logged every '+S.logInt+' minutes on the clock (clean cycles go to a _clean file every 5 s); exports appear when you export from the Files screen.</div>'; $('csvView').hidden=true; return; }
+  for (const n of names){ const f=S.files[n]; const d=document.createElement('div'); d.className='f'; d.innerHTML='<span class="fn"'+(f.col?' style="color:'+f.col+'"':'')+'>'+n+'</span><span class="fs">'+(f.rows.length-(f.kind==='export'?1:0))+' rows</span>'; d.onclick=()=>showCsv(n); list.appendChild(d); }
+  if (openName) showCsv(openName);
+}
+function showCsv(n){ const f=S.files[n]; const rows = f.kind==='export'? f.rows : [LOG_HEADER].concat(f.rows); const v=$('csvView'); v.hidden=false; v.textContent = n+'\n'+rows.slice(0,60).join('\n')+(rows.length>60?'\n... '+(rows.length-60)+' more rows':''); }
+
+// ------------------------------------------------------------------ main loop
+function renderAll(){
+  renderTop(); renderScm();
+  if (S.screen==='trend') renderTrend(); if (S.screen==='scope') renderScope(); if (S.screen==='files') renderFiles();
+  if (S.screen==='service') renderService(); if (S.screen==='config') renderConfig();
+  if ($('hist').classList.contains('on')) renderHist();
+}
+let acc=0, lastReal=performance.now(), tick=0;
+function loop(){
+  const now=performance.now(); acc += (now-lastReal)/1000*S.speed; lastReal=now;
+  let n=0; while (acc>=1 && n<600){ stepSecond(); acc-=1; n++; }
+  if (n>0 || (tick++%5===0)){ blink = Math.floor(S.t)%2===0; renderTop(); renderScm(); if (S.screen==='trend') renderTrend(); if (S.screen==='scope' && n) renderScope(); if (S.screen==='files' && n) renderFiles(); if (S.screen==='service' && n) renderService(); if (S.usb && n && (S.t%(S.logInt*60)<n || S.cleanActive)) renderUsb(); }
+  requestAnimationFrame(loop);
+}
+function boot(){
+  fresh(); seedHistory();
+  // 24 h of prior history so the trend windows have something to show. The
+  // process wandered, cleaned hourly, and the controller was in AUTO.
+  S.t -= 86400; S.lastClean = S.t - 1800; S.phaseStart = S.t; S.lastSlot = -1; S.pidAuto=true; S.out=43; S.integ=43; S.usb=true; S.dist=0;
+  for (let i=0;i<86400;i++){ if (i%1800===0) S.dist += (Math.random()-0.5)*60; stepSecond(true); }
+  S.pidAuto=false;  // boots MANUAL, as the real unit does
+  hiDays=7; S.screen='scm'; edField=null; $('editor').classList.remove('on'); $('confirm').classList.remove('on'); $('hist').classList.remove('on');
+  document.querySelectorAll('.sc').forEach(b=>b.classList.toggle('on',['normal','healthy','on','in','1'].includes(b.dataset.v) && b.dataset.g!=='flow' || (b.dataset.g==='flow' && b.dataset.v==='on')));
+  applyBright(); renderUsb(); show(BOOT_SCREEN);
+  if (BOOT_SCREEN==='config' && Q.get('group')!==null){ S.cfgGroup=+Q.get('group'); renderConfig(); }
+  if (BOOT_SCREEN==='files' && Q.get('log')){ S.fiPage=Math.min(2, +Q.get('log')); renderFiles(); }   // 1 = Data logging, 2 = Export data
+  acc=0; lastReal=performance.now();
+}
+buildMenu(); buildFilesMenu(); buildKb(KEYS); boot();
+requestAnimationFrame(loop);
+})();
+</script>

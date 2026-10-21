@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MicroMetrix Virtual Panels</title>
+<meta name="description" content="Try the MicroMetrix SCM streaming current monitor and PCA particle charge analyzer in your browser. Interactive simulations built from the instrument firmware.">
+<link rel="icon" href="logo_150.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<style>
+/* The stage (top bar, headline, tour, instrument) is the deep basin colour in
+   both themes. Only the reading matter below it follows light / dark. */
+:root{
+  --basin:#0C3A46; --basin-deep:#082A33; --on-basin:#EEF5F4; --on-basin-muted:#A9C4C8;
+  --basin-line:rgba(255,255,255,.22); --aqua:#A6E4EA;
+  --page:#F4F5F2; --ink:#13262D; --muted:#55686E; --line:#CFD5D2; --accent:#0B7A93;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --basin:#0A2F39; --basin-deep:#071F26;
+  --page:#0B1B21; --ink:#E3ECEC; --muted:#93AAAF; --line:#24393F; --accent:#5CCFDD;
+}}
+:root[data-theme="dark"]{
+  --basin:#0A2F39; --basin-deep:#071F26;
+  --page:#0B1B21; --ink:#E3ECEC; --muted:#93AAAF; --line:#24393F; --accent:#5CCFDD;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--page);color:var(--ink)}
+body{font-family:Archivo,"Segoe UI",Arial,sans-serif;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+button{font:inherit;color:inherit;cursor:pointer}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:clamp(16px,3vw,40px)}
+.disp{font-stretch:62%;font-weight:800;line-height:.94;letter-spacing:-.005em;margin:0}
+
+/* ---------------------------------------------------------------- stage */
+/* The gradient ends above the panel frame: the frame paints --basin-deep itself
+   (see stageCss), because a transparent iframe is not dependable everywhere. */
+.stage{background:linear-gradient(180deg,var(--basin),var(--basin-deep) 300px);color:var(--on-basin);padding-bottom:clamp(28px,5vw,64px)}
+.stage :focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
+.bar{display:flex;align-items:center;gap:12px 20px;min-height:64px;padding-block:10px;flex-wrap:wrap}
+.brand img{display:block;height:26px;width:auto;filter:brightness(0) invert(1)}
+.switch{display:flex;gap:6px;margin-left:auto}
+.switch button{border:1px solid var(--basin-line);background:transparent;border-radius:3px;padding:7px 14px;display:flex;align-items:baseline;gap:8px;color:var(--on-basin-muted);font-size:14px}
+.switch button b{font-weight:700;color:var(--on-basin)}
+.switch button:hover{border-color:var(--on-basin)}
+.switch button.on{background:var(--on-basin);border-color:var(--on-basin);color:var(--basin)}
+.switch button.on b{color:var(--basin)}
+@media (max-width:760px){.switch button span{display:none}}
+.btn{border:1px solid var(--basin-line);background:transparent;border-radius:3px;padding:7px 14px;font-size:14px;white-space:nowrap;color:var(--on-basin)}
+.btn:hover{border-color:var(--on-basin)}
+.btn:disabled{opacity:.4;cursor:default;border-color:var(--basin-line)}
+.btn.go{background:var(--on-basin);border-color:var(--on-basin);color:var(--basin);font-weight:700}
+
+.hero{padding-block:clamp(20px,4vw,48px) clamp(20px,3vw,36px)}
+.hero h1{font-size:clamp(46px,9.4vw,124px)}
+.lead{font-size:clamp(18px,2vw,23px);line-height:1.35;margin:clamp(12px,1.6vw,20px) 0 0;max-width:52ch;color:var(--on-basin)}
+.lead b{font-weight:700;margin-right:.5em}
+
+/* tour: the steps are a real sequence, so they carry numbers */
+.tour{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px 28px;align-items:center;border-block:1px solid var(--basin-line);padding-block:14px;margin-bottom:clamp(18px,2.4vw,30px)}
+.tour .nums{display:flex;flex-wrap:wrap;gap:5px;list-style:none;margin:0;padding:0;align-items:center}
+.tour .nums .name{font-weight:700;margin-right:8px}
+.tour .nums button{width:30px;height:30px;border:1px solid var(--basin-line);border-radius:3px;background:transparent;color:var(--on-basin-muted);font-weight:600;font-size:14px;padding:0}
+.tour .nums button:hover{border-color:var(--on-basin)}
+.tour .nums button[aria-current="step"]{background:var(--on-basin);border-color:var(--on-basin);color:var(--basin)}
+.tour h2{font-size:26px;display:inline;margin-right:12px}
+.tour p{display:inline;margin:0;color:var(--on-basin-muted);font-size:15.5px}
+.tour kbd{font:inherit;font-weight:600;color:var(--on-basin);border:1px solid var(--basin-line);border-radius:3px;padding:0 5px;white-space:nowrap}
+.tour .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:1000px){.tour{grid-template-columns:minmax(0,1fr)}.tour .acts{justify-content:flex-start}}
+
+.frame{position:relative}
+.frame iframe{display:block;width:100%;height:600px;border:0;background:transparent;opacity:0;transition:opacity .6s ease}
+.frame iframe.ready{opacity:1}
+.frame iframe[hidden]{display:none}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--on-basin-muted);pointer-events:none}
+.loading[hidden]{display:none}
+.hint{margin:0;color:var(--on-basin-muted);font-size:14.5px;max-width:78ch}
+@media (prefers-reduced-motion: reduce){.frame iframe{transition:none}}
+
+/* ---------------------------------------------------------------- reading matter */
+main :focus-visible,footer :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sec{padding-block:clamp(40px,6vw,84px) 0}
+.sec > h2{font-size:clamp(34px,4.6vw,56px);margin-bottom:clamp(18px,2.4vw,30px)}
+.what{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,4fr);gap:24px clamp(28px,5vw,80px);align-items:start}
+.what .desc{margin:0;font-size:clamp(17px,1.5vw,19.5px);line-height:1.6;max-width:64ch}
+.facts{list-style:none;margin:0;padding:0;font-weight:600}
+.facts li{padding:12px 0;border-top:1px solid var(--line)}
+.facts li:last-child{border-bottom:1px solid var(--line)}
+.caps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 clamp(28px,5vw,80px);margin:clamp(28px,4vw,52px) 0 0}
+.caps div{border-top:2px solid var(--ink);padding:16px 0 30px}
+.caps dt{font-stretch:62%;font-weight:800;font-size:30px;line-height:1.05;margin-bottom:8px}
+.caps dd{margin:0;color:var(--muted);max-width:58ch}
+@media (max-width:820px){.what,.caps{grid-template-columns:minmax(0,1fr)}}
+table.glance{width:100%;border-collapse:collapse}
+table.glance th,table.glance td{padding:13px 0;border-top:1px solid var(--line);vertical-align:top;text-align:left}
+table.glance tr:last-child th,table.glance tr:last-child td{border-bottom:1px solid var(--line)}
+table.glance th{font-weight:700;width:30%;padding-right:20px}
+table.glance td{color:var(--muted)}
+@media (max-width:600px){
+  table.glance th,table.glance td{display:block;width:auto}
+  table.glance th{padding-bottom:0}
+  table.glance td{border-top:0;padding-top:2px}
+  table.glance tr:last-child th{border-bottom:0}
+}
+.about{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,4fr);gap:24px clamp(28px,5vw,80px);padding-bottom:clamp(48px,7vw,96px)}
+.about p{margin:0 0 12px;max-width:68ch;color:var(--muted)}
+.about ul{list-style:none;margin:0;padding:0}
+.about li{padding:12px 0;border-top:1px solid var(--line);font-weight:600}
+.about li:last-child{border-bottom:1px solid var(--line)}
+.about .fw{display:block;margin-top:0;color:var(--muted);font-size:14px}
+@media (max-width:820px){.about{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------------------------------------------------------------- kiosk
+   only the screen, with a slim brand bar at the bottom */
+.kbar{position:fixed;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:14px;padding-inline:16px;background:var(--basin-deep);color:var(--on-basin);border-top:1px solid var(--basin-line);z-index:5}
+.kbar[hidden]{display:none}
+.kbar img{height:22px;filter:brightness(0) invert(1)}
+.kbar .switch{margin-inline:auto}
+.kbar .touch{color:var(--on-basin-muted);font-size:14px;white-space:nowrap}
+.kbar :focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
+@media (max-width:640px){.kbar .touch{display:none}}
+body.kiosk{overflow:hidden}
+body.kiosk .bar,body.kiosk .hero,body.kiosk .tour,body.kiosk .hint,body.kiosk main{display:none}
+body.kiosk .frame{position:fixed;inset:0 0 56px 0;background:#0B0F14}
+body.kiosk .frame iframe{height:100%}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <header class="wrap bar">
+    <a class="brand" href="#" aria-label="Micrometrix"><img src="logo_150.png" alt="Micrometrix"></a>
+    <nav class="switch" role="tablist" aria-label="Instrument">
+      <button role="tab" data-p="scm" class="on"><b>SCM</b><span>Streaming Current Monitor</span></button>
+      <button role="tab" data-p="pca"><b>PCA</b><span>Particle Charge Analyzer</span></button>
+    </nav>
+    <button class="btn" id="bFull" title="Show only the screen, full window">Full screen</button>
+  </header>
+
+  <div class="wrap">
+    <section class="hero">
+      <h1 class="disp" id="hName"></h1>
+      <p class="lead"><b id="hModel"></b><span id="hLead"></span></p>
+    </section>
+
+    <section class="tour" id="tour" aria-label="Guided tour">
+      <ol class="nums" id="tNums"></ol>
+      <div><h2 class="disp" id="tTitle"></h2><p id="tText"></p></div>
+      <div class="acts">
+        <button class="btn go" id="tDo" hidden>Set it up for me</button>
+        <button class="btn" id="tPrev">Back</button>
+        <button class="btn" id="tNext">Next</button>
+      </div>
+    </section>
+
+    <div class="frame" id="frame">
+      <iframe id="f_scm" title="SCM virtual panel" src="scm_virtual_panel.html" scrolling="no"></iframe>
+      <iframe id="f_pca" title="PCA virtual panel" scrolling="no" hidden></iframe>
+      <div class="loading" id="loading">Loading the panel&hellip;</div>
+    </div>
+    <p class="hint">Tap or click the screen as you would the real one. The controls beside it stand in for the plant, the sensor and the USB stick. Nothing here is stored or sent anywhere.</p>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="sec">
+    <h2 class="disp">What it does</h2>
+    <div class="what">
+      <p class="desc" id="hDesc"></p>
+      <ul class="facts" id="hFacts"></ul>
+    </div>
+    <dl class="caps" id="caps"></dl>
+  </section>
+
+  <section class="sec">
+    <h2 class="disp">At a glance</h2>
+    <table class="glance" id="glance"></table>
+  </section>
+
+  <section class="sec">
+    <h2 class="disp">About this demo</h2>
+    <div class="about">
+      <p>These panels are browser simulations built from the instruments' own firmware source, not videos or mock-ups. Screens, menus, the keypad, the controller, the clean cycle, the titration logic, Signal Health and the file formats follow the firmware. The sensor, the sample, the water and the pump are simulated, and the history shown when the page opens is generated so the graphs are not empty.</p>
+      <div>
+        <span class="fw" id="fwLine"></span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="kbar" id="kbar" hidden>
+  <img src="logo_150.png" alt="Micrometrix">
+  <nav class="switch" role="tablist" aria-label="Instrument">
+    <button role="tab" data-p="scm" class="on"><b>SCM</b><span>Streaming Current Monitor</span></button>
+    <button role="tab" data-p="pca"><b>PCA</b><span>Particle Charge Analyzer</span></button>
+  </nav>
+  <span class="touch">Touch the screen to try it</span>
+  <button class="btn" id="kReset">Restart</button>
+  <button class="btn" id="kExit">Exit</button>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+
+/* ------------------------------------------------------------------ product copy
+   Everything below is taken from the two user manuals (Product overview and
+   Specifications) and the current firmware; nothing is invented. Keep it in step. */
+const PRODUCTS = {
+  scm: {
+    file:'scm_virtual_panel.html', title:'Streaming Current Monitor', name:'SCM Model 247',
+    lead:'Continuous coagulant-demand measurement, with dose control built in.',
+    desc:'The SCM measures streaming current, the net electrical charge carried by the particles in a water sample, and reports it in millivolts. A reading near zero means the particle charge has been neutralised and the coagulant dose is right. A built-in PI controller can hold that reading at a setpoint by driving a metering pump over 4–20 mA, backed by alarm relays, a timed sensor clean cycle and about sixty days of logging on the instrument itself.',
+    facts:['±1000 mV, one reading a second','PI dose control, 4–20 mA to the pump','Sixty days of logs kept on the instrument'],
+    caps:[
+      ['Measure','Streaming current in millivolts, relative to a zero point or absolute. High and low alarms with hysteresis, each on its own relay.'],
+      ['Control the dose','A PI controller drives the metering pump over 4–20 mA. AUTO and MANUAL hand over without a bump, and a second output retransmits the reading.'],
+      ['Keep the sensor honest','Timed clean cycles with flush and recovery, a Signal Health grade taken from the sensor waveform during each flush, sensor-fault detection on a cut cable, and a diagnostic relay that calls for a person.'],
+      ['Keep the records','Every day’s readings stay on the instrument for about sixty days. Export a day, week or month to a USB stick as a spreadsheet file, along with the sensor-condition history.']
+    ],
+    glance:[
+      ['Measurement range','−1000 to +1000 mV (also shown as ±100.0 or ±10.00)'],
+      ['Sensor input','4–20 mA; below 3.6 mA reported as a sensor fault'],
+      ['Display','7-inch colour touchscreen, 800 × 480, one update a second'],
+      ['Analog outputs','2 × 4–20 mA: pump command and reading retransmit'],
+      ['Relays','4: low alarm, high alarm, flush valve, diagnostic'],
+      ['Digital input','1 dry contact: flow switch, remote hold, remote clean or remote AUTO'],
+      ['Control','PI, direct or reverse acting, output limits, bumpless transfer'],
+      ['Trend memory','24 hours, seven windows from 1 minute'],
+      ['Logging','One file per day on the instrument, about 60 days; 1–60 minute interval plus 5 s during clean cycles; export by day, week or month to USB'],
+      ['Signal Health history','One record every 12 hours, kept 60 days'],
+      ['Clock','Battery-backed real-time clock']
+    ],
+    tour:[
+      {t:'Set an alarm', x:'Tap <kbd>Low Alarm</kbd> and enter <kbd>-20</kbd> on the keypad. The status chip and the reading turn red and the low-alarm relay closes.'},
+      {t:'Watch a clean cycle', x:'Tap <kbd>Manual Clean</kbd>, then open <kbd>Trend</kbd> and choose the <kbd>1 m</kbd> window: red flush, green recovery, and the reading held while the sensor is cleaned.', act:[{g:'speed',v:'10'}], al:'Speed up time ×10'},
+      {t:'Hand over to the controller', x:'Tap <kbd>PID: MANUAL</kbd>. The keypad shows the dose; press <kbd>AUTO</kbd> and confirm. The controller walks the reading to the setpoint; the amber line on the Trend is the dose.'},
+      {t:'See the sensor’s condition', x:'Open <kbd>Scope</kbd> for the live sensor waveform, then tap the <kbd>Flush health</kbd> tile for the sixty-day history; the sensor is graded during each flush.', act:[{g:'sensor',v:'fouling'}], al:'Make the sensor foul'},
+      {t:'Cut the cable', x:'A cut cable reads under 4 mA, so the panel shows <kbd>SENSOR FAULT</kbd> and dashes instead of a number, drops the controller to MANUAL and closes the diagnostic relay.', act:[{g:'sensor',v:'none'}], al:'Cut the sensor cable'},
+      {t:'Plant stops', x:'With a flow switch on the digital input (<kbd>Config → Inputs & outputs → Digital input 1</kbd>), no flow holds the reading and the dose instead of chasing a still sample.', act:[{g:'sensor',v:'healthy'},{g:'flow',v:'off'}], al:'Open the flow switch'},
+      {t:'Service reminder', x:'Tap the flashing <kbd>CAL DUE</kbd> badge, unlock with the demo's PIN <kbd>0000</kbd>, then <kbd>Mark calibrated</kbd>.', act:[{g:'flow',v:'on'},{id:'bCalDue'}], al:'Make calibration due'},
+      {t:'Take the data with you', x:'Open <kbd>Files</kbd>, then <kbd>Data logging</kbd>, then <kbd>Export data</kbd>, and pick <kbd>Last day</kbd>. The export appears in the file list beside the screen; tap it to read the spreadsheet.'}
+    ]
+  },
+  pca: {
+    file:'pca_virtual_panel.html', title:'Particle Charge Analyzer', name:'PCA Model 247',
+    lead:'Bench-top particle charge measurement, with automatic titration.',
+    desc:'The PCA measures the electrical charge carried by the particles in a liquid sample and reports it in millivolts: negative for an anionic sample, positive for a cationic one. Its built-in pump can titrate the sample with a titrant of opposite charge, added in small controlled doses until the reading reaches zero. The volume of titrant needed is the result, a direct measure of the sample’s charge demand. Every run is recorded second by second and kept on the instrument.',
+    facts:['±1000 mV, polarity shown in colour','Automatic titration to the charge-neutral point','About 600 runs stored on the instrument'],
+    caps:[
+      ['Measure','Particle charge in millivolts, coloured by polarity: blue cationic, red anionic. Relative to the last zero point, or absolute.'],
+      ['Titrate automatically','Doses of opposite-charge titrant shrink as the reading closes on zero. The instrument waits for the sample to settle after each dose and stops at the endpoint. Manual runs are recorded too.'],
+      ['Built-in pump','A stepper-driven peristaltic pump delivers single drops, set doses or continuous flow, calibrated in microlitres per motor step.'],
+      ['Keep the records','Every finished run is kept on the instrument, about 600 runs, with a results log. Each run exports as one spreadsheet file: the result, the run conditions and the full curve.']
+    ],
+    glance:[
+      ['Measurement range','−1000 to +1000 mV'],
+      ['Sensor input','4–20 mA; below 3.6 mA reported as a sensor fault'],
+      ['Display','Colour touchscreen, 800 × 480, four updates a second'],
+      ['Titration recording','One sample a second; curve memory 600 samples (10 minutes)'],
+      ['Titrant pump','Stepper-driven peristaltic; volume per motor step set by calibration'],
+      ['Titrant per run','Adjustable, 0.1–500 mL'],
+      ['Endpoint','Settled within an adjustable band of zero (0.5–100 mV), or zero crossing'],
+      ['Run storage','About 600 runs of 5 minutes on the instrument; the oldest removed when full'],
+      ['Export','One CSV file per run, plus a results log, to a USB stick'],
+      ['Signal Health history','One record every 12 hours, kept 60 days'],
+      ['Clock','Battery-backed real-time clock']
+    ],
+    tour:[
+      {t:'Run an automatic titration', x:'Open <kbd>Titrate</kbd>, tap <kbd>Auto Titrate</kbd> and <kbd>Confirm</kbd>. Watch the opening dose, the settling after each dose, and the doses shrinking as the reading closes on zero.', act:[{g:'speed',v:'10'}], al:'Speed up time ×10'},
+      {t:'Read the result', x:'When the run ends it is already stored on the unit. Open <kbd>Files</kbd>, then <kbd>Titration runs</kbd>, and press <kbd>Export run</kbd> to copy it to the stick. Tap it in the file list beside the screen to read the spreadsheet.'},
+      {t:'Empty titrant bottle', x:'Run again. The pump turns but nothing arrives, and after eight doses that together barely move the reading the titrator stops with <kbd>No response</kbd>.', act:[{g:'bottle',v:'empty'}], al:'Empty the bottle'},
+      {t:'Cable cut during a run', x:'The run ends, Home shows <kbd>----</kbd> and <kbd>SENSOR FAULT</kbd>, and Start, Auto and ZERO stay dimmed until the cable is back.', act:[{g:'bottle',v:'full'},{g:'sensor',v:'cut'}], al:'Cut the sensor cable'},
+      {t:'Relative and absolute', x:'Tap the yellow <kbd>RELATIVE</kbd> chip on Home to see the absolute reading; tap it again to go back.', act:[{g:'sensor',v:'healthy'}], al:'Repair the cable'},
+      {t:'Service reminder', x:'Tap the flashing <kbd>CAL DUE</kbd> badge, unlock with the demo's PIN <kbd>1234</kbd>, then <kbd>Mark calibrated</kbd>.', act:[{id:'bCalDue'}], al:'Make calibration due'}
+    ]
+  }
+};
+
+/* ------------------------------------------------------------------ url options */
+const qs = new URLSearchParams(location.search);
+const kioskFromUrl = qs.has('kiosk') && qs.get('kiosk') !== '0';
+const idleS = Math.max(30, parseInt(qs.get('idle') || '180', 10) || 180);
+function productFromUrl(){
+  const h = (location.hash || '').replace('#','').toLowerCase();
+  if (PRODUCTS[h]) return h;
+  const p = (qs.get('p') || '').toLowerCase();
+  return PRODUCTS[p] ? p : 'scm';
+}
+
+/* ------------------------------------------------------------------ panels in frames
+   The panel pages are left exactly as they are. Because they sit in the same
+   folder, this page can reach into each frame to restyle the page around the
+   device, size the frame to its content, and press its scenario buttons for
+   the tour. Nothing inside #dev (the instrument screen itself) is touched.
+
+   CSS_EMBED mounts the screen in a painted steel door with four screws, after
+   the real front panel (hardware/front_panel), and sets the side controls in
+   this page's type and stage colours by overriding the panel page's tokens. */
+const CSS_EMBED = `
+.head,.below{display:none!important}
+body{background:transparent!important}
+html:root{--pg-bg:transparent!important;--pg-panel:transparent!important;--pg-text:#EEF5F4!important;--pg-muted:#A9C4C8!important;
+  --pg-line:rgba(255,255,255,.22)!important;--pg-accent:#EEF5F4!important;--pg-accent-ink:#0C3A46!important;
+  --pg-chip:transparent!important;--pg-code:rgba(0,0,0,.28)!important}
+body{font-family:Archivo,"Segoe UI",Arial,sans-serif!important;font-size:14.5px!important}
+.wrap{max-width:none!important;padding:0 0 34px!important}
+.grid{gap:20px 36px!important}
+.grid>div:first-child{padding:8.5% 7%;border-radius:5px;background:linear-gradient(180deg,#DDE0DC,#C3C8C4);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.75),inset 0 -1px 0 rgba(0,0,0,.2),0 30px 50px -30px rgba(0,0,0,.7)}
+.stage{margin-inline:auto}
+.stage::before{content:"";position:absolute;inset:calc(-9% - 9px) calc(-3.6% - 9px);pointer-events:none;
+  --s:radial-gradient(circle,#7E8582 0 20%,#F1F3F0 23% 48%,#8A908D 52% 64%,transparent 67%);
+  background:var(--s) top left,var(--s) top right,var(--s) bottom left,var(--s) bottom right;
+  background-size:18px 18px;background-repeat:no-repeat}
+.bezel{border-radius:4px!important;box-shadow:0 0 0 2px rgba(0,0,0,.4),0 2px 0 3px rgba(255,255,255,.5)!important}
+.box{background:none!important;border:0!important;border-top:1px solid var(--pg-line)!important;border-radius:0!important;padding:14px 0 6px!important}
+.box h2{font-size:19px!important;font-weight:800!important;font-stretch:62%;letter-spacing:0!important;text-transform:none!important;color:var(--pg-text)!important}
+.sc,.pbtn{border-radius:3px!important}
+.sc.on{font-weight:700}
+.sc:hover,.pbtn:hover{border-color:var(--pg-text)!important}
+.sc:focus-visible,.pbtn:focus-visible{outline-color:#A6E4EA!important}
+@media (max-width:600px){.grid>div:first-child{padding:7% 5%}.stage::before{background-size:12px 12px;inset:calc(-9% - 6px) calc(-3.6% - 6px)}}
+`;
+const CSS_KIOSK = '.side{display:none!important}.grid{grid-template-columns:minmax(0,1fr)!important}'
+  + '.wrap{max-width:none!important;padding:0!important}html,body{overflow:hidden}'
+  + '.grid>div:first-child{padding:0!important;background:none!important;box-shadow:none!important;border-radius:0!important}'
+  + '.stage::before{display:none}.bezel{box-shadow:none!important}'
+  + '.stage{max-width:min(100%,calc(100vh*800/480))!important;margin:0 auto}';
+const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap';
+const frames = { scm:$('f_scm'), pca:$('f_pca') };
+const ready = { scm:false, pca:false };
+let cur = 'scm', kiosk = false, lastAct = Date.now(), idleReset = false;
+
+function doc(p){ try { return frames[p].contentDocument; } catch(e){ return null; } }
+function inject(p){
+  const d = doc(p); if (!d || !d.head) return false;
+  if (!d.getElementById('mmx-font')){
+    const l = d.createElement('link'); l.id = 'mmx-font'; l.rel = 'stylesheet'; l.href = FONT_HREF; d.head.appendChild(l);
+  }
+  let st = d.getElementById('mmx-embed');
+  if (!st){ st = d.createElement('style'); st.id = 'mmx-embed'; d.head.appendChild(st); }
+  st.textContent = stageCss() + CSS_EMBED + (kiosk ? CSS_KIOSK : '');
+  return true;
+}
+// The frame's own backdrop, in this page's stage colour for the current theme.
+function stageCss(){
+  const c = getComputedStyle(document.documentElement).getPropertyValue('--basin-deep').trim() || '#082A33';
+  return 'html{background:' + (kiosk ? '#0B0F14' : c) + '!important;color-scheme:dark}';
+}
+try {
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => Object.keys(frames).forEach(k => { if (ready[k]) inject(k); }));
+} catch(e){}
+function fitFrame(p){
+  const d = doc(p), f = frames[p];
+  if (kiosk || !d || !d.documentElement || f.hidden) return;
+  // The panel page's html/body are 100% tall, so their scrollHeight never
+  // shrinks below the frame; measure the content block instead.
+  const w = d.querySelector('.wrap');
+  const h = w ? Math.ceil(w.getBoundingClientRect().bottom + (d.defaultView.scrollY || 0)) : d.documentElement.scrollHeight;
+  if (h > 100) f.style.height = h + 'px';
+}
+function onFrameLoad(p){
+  const f = frames[p], d = doc(p);
+  ready[p] = true;
+  if (d){
+    inject(p);
+    try { const ro = new ResizeObserver(() => fitFrame(p)); ro.observe(d.body); const w = d.querySelector('.wrap'); if (w) ro.observe(w); } catch(e){}
+    ['pointerdown','touchstart','keydown'].forEach(ev => d.addEventListener(ev, touch, {passive:true}));
+    const m = /firmware v(\d+(?:\.\d+)*)/.exec((d.querySelector('.head .sub') || {}).textContent || '');
+    if (m) fw[p] = m[1];
+  } else {
+    // Opened from a file:// path or another origin: the panel still works, the
+    // extras (steel door, tour buttons, exact height) do not.
+    f.style.height = '900px';
+    f.style.background = '#EEF2F6';
+  }
+  f.classList.add('ready');
+  if (p === cur){ $('loading').hidden = true; fitFrame(p); renderStep(); }
+  fwLine();
+}
+const fw = { scm:'', pca:'' };
+function fwLine(){
+  const parts = [];
+  if (fw.scm) parts.push('SCM panel built from firmware v' + fw.scm + '.');
+  if (fw.pca) parts.push('PCA panel built from firmware v' + fw.pca + '.');
+  $('fwLine').textContent = parts.join(' ');
+}
+frames.scm.addEventListener('load', () => onFrameLoad('scm'));
+frames.pca.addEventListener('load', () => onFrameLoad('pca'));
+
+function press(p, a){
+  const d = doc(p); if (!d) return false;
+  const el = a.id ? d.getElementById(a.id) : d.querySelector('.sc[data-g="' + a.g + '"][data-v="' + a.v + '"]');
+  if (!el) return false;
+  el.click(); return true;
+}
+function canPress(p, acts){
+  const d = doc(p); if (!d) return false;
+  return acts.every(a => a.id ? !!d.getElementById(a.id) : !!d.querySelector('.sc[data-g="' + a.g + '"][data-v="' + a.v + '"]'));
+}
+function restart(p){ press(p, {id:'bReset'}); }
+
+/* ------------------------------------------------------------------ product switch */
+function show(p){
+  if (!PRODUCTS[p]) p = 'scm';
+  cur = p;
+  document.querySelectorAll('.switch button').forEach(b => {
+    const on = b.dataset.p === p; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
+  });
+  Object.keys(frames).forEach(k => { frames[k].hidden = (k !== p); });
+  if (!frames[p].src){ frames[p].src = PRODUCTS[p].file; }
+  $('loading').hidden = ready[p];
+  if (ready[p]) fitFrame(p);
+  renderCopy(p); step = 0; renderNums(); renderStep();
+  document.title = PRODUCTS[p].name + ' virtual panel – MicroMetrix';
+  const url = location.pathname + location.search + '#' + p;
+  if (location.hash !== '#' + p) history.replaceState(null, '', url);
+}
+document.querySelectorAll('.switch button').forEach(b => b.addEventListener('click', () => show(b.dataset.p)));
+window.addEventListener('hashchange', () => { const p = productFromUrl(); if (p !== cur) show(p); });
+
+function renderCopy(p){
+  const P = PRODUCTS[p];
+  $('hName').textContent = P.title; $('hModel').textContent = P.name + '.';
+  $('hLead').textContent = P.lead; $('hDesc').textContent = P.desc;
+  $('hFacts').innerHTML = P.facts.map(f => '<li>' + f + '</li>').join('');
+  $('caps').innerHTML = P.caps.map(c => '<div><dt>' + c[0] + '</dt><dd>' + c[1] + '</dd></div>').join('');
+  $('glance').innerHTML = P.glance.map(r => '<tr><th scope="row">' + r[0] + '</th><td>' + r[1] + '</td></tr>').join('');
+}
+
+/* ------------------------------------------------------------------ guided tour */
+let step = 0;
+function renderNums(){
+  const T = PRODUCTS[cur].tour;
+  $('tNums').innerHTML = '<li class="name">Guided tour</li>'
+    + T.map((s, i) => '<li><button data-i="' + i + '" aria-label="Step ' + (i+1) + ': ' + s.t.replace(/"/g,'&quot;') + '">' + (i+1) + '</button></li>').join('');
+}
+$('tNums').addEventListener('click', e => {
+  const b = e.target.closest('button[data-i]'); if (!b) return;
+  step = +b.dataset.i; renderStep();
+});
+function renderStep(){
+  const T = PRODUCTS[cur].tour, s = T[step];
+  $('tNums').querySelectorAll('button').forEach((b, i) => {
+    if (i === step) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+  });
+  $('tTitle').textContent = s.t; $('tText').innerHTML = s.x;
+  $('tPrev').disabled = step === 0; $('tNext').textContent = step === T.length-1 ? 'Start over' : 'Next';
+  const b = $('tDo');
+  if (s.act && ready[cur] && canPress(cur, s.act)){ b.hidden = false; b.textContent = s.al || 'Set it up for me'; }
+  else b.hidden = true;
+}
+$('tPrev').addEventListener('click', () => { if (step > 0){ step--; renderStep(); } });
+$('tNext').addEventListener('click', () => { step = (step+1) % PRODUCTS[cur].tour.length; renderStep(); });
+$('tDo').addEventListener('click', () => {
+  const s = PRODUCTS[cur].tour[step];
+  (s.act || []).forEach(a => press(cur, a));
+  $('frame').scrollIntoView({behavior:'smooth', block:'nearest'});
+});
+
+/* ------------------------------------------------------------------ kiosk mode
+   ?kiosk=1 shows only the screen with a slim brand bar, and restarts the demo
+   after a few minutes without a touch so the next visitor starts clean
+   (?idle=seconds, default 180). The Full screen button does the same for
+   the current window; Esc or Exit leaves either. Exit is always shown: a
+   booth tablet should be locked down by the tablet, not by hiding the way out. */
+function setKiosk(on){
+  kiosk = on;
+  document.body.classList.toggle('kiosk', on);
+  $('kbar').hidden = !on;
+  Object.keys(frames).forEach(k => { if (ready[k]){ inject(k); if (!on) fitFrame(k); else frames[k].style.height = '100%'; } });
+  if (on) window.scrollTo(0, 0);
+}
+$('bFull').addEventListener('click', () => {
+  setKiosk(true);
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+});
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && !kioskFromUrl) setKiosk(false); });
+function leaveKiosk(){
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  // Opened on the kiosk address: go to the normal page for the same product.
+  if (kioskFromUrl) location.href = location.pathname + '#' + cur;
+  else setKiosk(false);
+}
+$('kExit').addEventListener('click', leaveKiosk);
+$('kReset').addEventListener('click', () => { restart(cur); step = 0; renderStep(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && kiosk && !document.fullscreenElement) leaveKiosk(); });
+
+function touch(){ lastAct = Date.now(); idleReset = false; }
+['pointerdown','touchstart','keydown'].forEach(ev => window.addEventListener(ev, touch, {passive:true}));
+setInterval(() => {
+  if (!kiosk || idleReset) return;
+  if (Date.now() - lastAct > idleS*1000){ idleReset = true; restart(cur); step = 0; renderStep(); }
+}, 5000);
+
+/* ------------------------------------------------------------------ go */
+window.addEventListener('resize', () => fitFrame(cur));
+show(productFromUrl());
+if (kioskFromUrl) setKiosk(true);
+})();
+</script>
+</body>
+</html>

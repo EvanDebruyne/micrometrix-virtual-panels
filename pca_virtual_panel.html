@@ -1,0 +1,1579 @@
+<meta charset="utf-8">
+<title>PCA Virtual Panel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap">
+<style>
+/* ---- page around the panel: same page styling as the SCM virtual panel ---- */
+:root{
+  --pg-bg:#EEF2F6; --pg-panel:#FFFFFF; --pg-text:#18222E; --pg-muted:#5B6878; --pg-line:#D5DCE5;
+  --pg-accent:#0B7A93; --pg-accent-ink:#FFFFFF; --pg-chip:#E3EBF1; --pg-code:#F6F8FA;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --pg-bg:#0E1319; --pg-panel:#151C25; --pg-text:#E6EDF3; --pg-muted:#93A0B0; --pg-line:#28323F;
+  --pg-accent:#22D3EE; --pg-accent-ink:#0B0F14; --pg-chip:#1D2733; --pg-code:#0B0F14; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --pg-bg:#0E1319; --pg-panel:#151C25; --pg-text:#E6EDF3; --pg-muted:#93A0B0; --pg-line:#28323F;
+  --pg-accent:#22D3EE; --pg-accent-ink:#0B0F14; --pg-chip:#1D2733; --pg-code:#0B0F14; color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--pg-bg);color:var(--pg-text);font-family:Montserrat,"Segoe UI",Arial,sans-serif;font-size:14px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:18px 40px;padding-inline:16px}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin-bottom:12px}
+.head h1{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.head .sub{color:var(--pg-muted);font-size:13px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:1000px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stage{position:relative;width:100%;aspect-ratio:800/480;max-width:800px}
+.bezel{position:absolute;inset:0;border-radius:12px;background:#0B0F14;box-shadow:0 0 0 1px var(--pg-line),0 14px 40px -18px rgba(0,0,0,.55);overflow:hidden}
+#dev{position:absolute;left:0;top:0;width:800px;height:480px;transform-origin:0 0;background:#0B0F14;color:#E6EDF3;font-family:Montserrat,"Segoe UI",Arial,sans-serif;user-select:none;-webkit-user-select:none;overflow:hidden;touch-action:manipulation}
+.side{display:flex;flex-direction:column;gap:12px}
+.box{background:var(--pg-panel);border:1px solid var(--pg-line);border-radius:10px;padding:12px 14px}
+.box h2{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--pg-muted);margin:0 0 8px}
+.box h3{font-size:12px;font-weight:600;color:var(--pg-text);margin:10px 0 2px}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
+.row .lab{width:100%;font-size:12px;color:var(--pg-muted)}
+.sc{border:1px solid var(--pg-line);background:var(--pg-chip);color:var(--pg-text);border-radius:999px;padding:5px 11px;font:inherit;font-size:12.5px;cursor:pointer}
+.sc:hover{border-color:var(--pg-accent)}
+.sc.on{background:var(--pg-accent);color:var(--pg-accent-ink);border-color:var(--pg-accent)}
+.sc:focus-visible,.pbtn:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+.pbtn{border:1px solid var(--pg-line);background:var(--pg-panel);color:var(--pg-text);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+.note{font-size:12.5px;color:var(--pg-muted);margin:0}
+.steps{margin:0;padding-left:18px;font-size:13px}
+.steps li{margin:4px 0}
+.steps b{font-weight:600}
+.files{font-size:12.5px;max-height:196px;overflow:auto}
+.files .f{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid var(--pg-line);cursor:pointer}
+.files .f:first-child{border-top:0}
+.files .f:hover .fn,.files .f.sel .fn{color:var(--pg-accent)}
+.files .fn{font-family:ui-monospace,Consolas,monospace;font-size:12px;overflow-wrap:anywhere}
+.files .fs{color:var(--pg-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.csvhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px}
+.csvhead span{font-family:ui-monospace,Consolas,monospace;font-size:12px;overflow-wrap:anywhere}
+pre.csv{margin:6px 0 0;background:var(--pg-code);border:1px solid var(--pg-line);border-radius:8px;padding:10px;font:11.5px/1.5 ui-monospace,Consolas,monospace;max-height:300px;overflow:auto;white-space:pre}
+.below{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:800px}
+kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);border-radius:4px;padding:0 5px}
+
+/* ---- the device: PCA firmware palette and geometry (ui.cpp, 800 x 480) ---- */
+#dev *{box-sizing:border-box}
+#dev .c-accent{color:#22D3EE}
+#top{position:absolute;left:0;top:0;width:800px;height:44px;background:#141C26;border-bottom:1px solid #3A4656}
+#top .logo{position:absolute;left:14px;top:5px;width:150px;height:33px;display:block;cursor:pointer}
+#top .brand{position:absolute;left:178px;top:0;line-height:43px;color:#22D3EE;font-size:20px;font-weight:500}
+#top .title{position:absolute;top:0;line-height:44px;color:#8B98A9;font-size:14px;white-space:nowrap}
+#top .caldue{position:absolute;top:6px;height:32px;line-height:26px;padding:0 10px;border:2px solid #F87171;border-radius:6px;font-size:20px;font-weight:500;cursor:pointer}
+#top .clock{position:absolute;right:14px;top:0;line-height:43px;color:#8B98A9;font-size:20px;font-variant-numeric:tabular-nums}
+#nav{position:absolute;left:0;top:44px;width:110px;height:436px;background:#141C26;border-right:1px solid #3A4656;display:flex;flex-direction:column;justify-content:space-evenly;align-items:center}
+#nav .it{width:94px;height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:10px;color:#8B98A9;cursor:pointer}
+#nav .it svg{width:28px;height:28px;fill:currentColor}
+#nav .it span{font-size:20px}
+#nav .it.on{background:#1B2635;color:#22D3EE}
+#nav .it:active{background:#131b26}
+#content{position:absolute;left:110px;top:44px;width:690px;height:436px;padding:14px}
+.scr{position:absolute;inset:14px;display:none;flex-direction:column}
+.scr.on{display:flex}
+.card{background:#141C26;border:1px solid #3A4656;border-radius:12px;padding:12px}
+.btn{background:#1B2635;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#E6EDF3;text-align:center;white-space:nowrap}
+.btn:active{filter:brightness(.8)}
+.btn.dis{opacity:.4;pointer-events:none}
+.btn.ink{color:#0B0F14}
+.vbtn{background:#1B2635;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;cursor:pointer}
+.vbtn:active{background:#131b26}
+.vbtn .cap{color:#8B98A9;font-size:20px;white-space:nowrap}
+.vbtn .val{color:#22D3EE;font-size:32px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tiles{height:96px;display:flex;gap:10px;flex:none}
+.tile{background:#141C26;border:1px solid #3A4656;border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex:1;min-width:0}
+.tile .cap{color:#8B98A9;font-size:20px;white-space:nowrap}
+.tile .val{color:#E6EDF3;font-size:32px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.status{font-size:20px;color:#8B98A9;min-height:26px;line-height:1.3;flex:none}
+/* home */
+#home{gap:8px}
+#home .gcard{flex:1;display:flex;flex-direction:column;padding:12px}
+#home .hdr{height:40px;position:relative;flex:none}
+#home .mode{position:absolute;left:0;top:5px;height:30px;line-height:28px;padding:0 12px;border-radius:14px;border:1px solid #8B98A9;color:#8B98A9;font-size:20px;cursor:pointer}
+#home .mode.rel{background:#C9A63A;border-color:#C9A63A;color:#0B0F14;font-weight:500}
+#home .mode:active{background:#6f5b20;color:#E6EDF3}
+#home .pchip{position:absolute;right:0;top:1px;height:38px;line-height:38px;padding:0 16px;border-radius:14px;color:#0B0F14;font-size:28px;font-weight:500;background:#22D3EE}
+#home .mid{flex:1;display:flex;align-items:center;justify-content:center;overflow:visible;position:relative}
+/* home_other_lbl (0.9.23): the reading not on the digits, under the mode chip */
+#home .other{position:absolute;left:12px;top:2px;line-height:24px;font-size:20px;color:#8B98A9;white-space:nowrap}
+#home .digits{font-family:Arial,"Helvetica Neue",Helvetica,sans-serif;font-weight:700;font-size:215px;line-height:158px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:#22D3EE;white-space:nowrap}
+#home .ftr{height:34px;position:relative;flex:none}
+#home .state{position:absolute;left:0;top:0;line-height:34px;font-size:20px;color:#8B98A9;white-space:nowrap}
+#home .rawl{position:absolute;left:0;right:0;top:0;text-align:center;line-height:34px;font-size:20px;color:#3A4656}
+#home .unit{position:absolute;right:0;top:0;line-height:34px;font-size:28px;color:#8B98A9}
+#home .brow{height:76px;display:flex;gap:10px;flex:none}
+#home .brow .btn{height:100%;font-size:32px;font-weight:500}
+/* titrate */
+#titrate{gap:10px}
+#titrate .tcard{flex:1;position:relative;padding:12px;min-height:0}
+#titrate canvas{position:absolute;display:block}
+#titrate .zline{position:absolute;height:2px;background:rgba(34,211,238,.6)}
+.axl{position:absolute;font-size:20px;line-height:22px;color:#8B98A9;font-variant-numeric:tabular-nums;white-space:nowrap}
+#titrate .tempty{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;color:#3A4656;font-size:20px}
+#titrate .tstat{position:absolute;left:14px;right:14px;bottom:13px;font-size:20px;line-height:22px;color:#8B98A9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#titrate .arow{height:72px;display:flex;gap:10px;flex:none}
+#titrate .arow .abtn{flex:1;height:100%;font-size:32px;font-weight:500}
+#titrate .arow .vbtn{width:220px;flex:none;height:100%}
+#titrate .arow .vbtn .val{font-size:28px}
+#titrate .arow .vbtn.dis{opacity:.4;pointer-events:none}
+/* scope */
+#scope{gap:10px}
+#scope .scard{flex:1;position:relative;padding:12px}
+#scope canvas{position:absolute;display:block}
+#scope .leg{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:20px;color:#8B98A9}
+#scope .nosig{position:absolute;left:0;right:0;top:40%;text-align:center;font-size:28px;color:#8B98A9}
+#scope .tile.click{cursor:pointer}
+#scope .tile.click:active{background:#1B2635}
+/* files + service */
+.dcard{flex:1;display:flex;flex-direction:column;gap:2px;padding:16px}
+.dcap{color:#22D3EE;font-size:20px;margin-bottom:2px}
+.drow{height:42px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:28px;flex:none}
+.drow .n{color:#8B98A9;white-space:nowrap}
+.drow .v{color:#E6EDF3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#files{gap:8px}
+/* Files menu (0.9.24): strip + menu rows share the Config styles */
+#fiStrip{height:52px;flex:none;display:none;align-items:center;gap:16px}
+#fiStrip .btn{width:150px;height:52px;font-size:28px}
+#fiStrip .ct{font-size:28px;color:#E6EDF3}
+#fiMenu{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px}
+#fiMenu .st{font-size:20px;color:#8B98A9;padding:6px 6px 0}
+#fiPage{flex:1;min-height:0;display:none;flex-direction:column;gap:8px}
+#fiPage .dcard{padding:12px}
+#fiPage .drow{height:36px}
+.frow{height:64px;display:flex;gap:10px;flex:none}
+.frow .btn{flex:1;height:100%;font-size:28px;font-weight:500;color:#0B0F14}
+#service{gap:10px}
+#service .dcard{padding:14px}
+#service .srow{height:64px;display:flex;gap:10px;flex:none}
+#service .srow .btn{flex:1;height:100%;font-size:20px;font-weight:500}
+/* pump */
+/* pump (0.9.27): readout strip, three labelled sections, status + STOP */
+#pump{gap:6px}
+#pump .pu-strip{height:44px;flex:none;padding:0 12px;display:flex;align-items:center;justify-content:space-between}
+#pump .pu-ro{display:flex;align-items:center;gap:10px;white-space:nowrap}
+#pump .pu-ro i{font-style:normal;font-size:20px;color:#8B98A9}
+#pump .pu-ro b{font-weight:400;font-size:28px;color:#E6EDF3;font-variant-numeric:tabular-nums}
+#pump .pu-cap{height:22px;flex:none;display:flex;align-items:center;gap:12px;padding-left:4px;font-size:20px;line-height:22px;white-space:nowrap;overflow:hidden}
+#pump .pu-cap b{font-weight:400;color:#22D3EE}
+#pump .pu-cap span{color:#8B98A9;overflow:hidden;text-overflow:ellipsis}
+#pump .pu-row{height:64px;display:flex;gap:8px;flex:none}
+#pump .pu-row .btn,#pump .pu-row .vbtn{height:100%;min-width:0}
+#pump .pu-row .btn{font-size:28px}
+#pump .pu-row .vbtn .val{font-size:28px}
+#pump .pu-bot{height:58px;display:flex;gap:10px;align-items:center;flex:none}
+#pump .pu-bot .status{flex:1;min-height:0}
+#pump .pu-bot .btn{width:200px;height:100%;flex:none;font-size:32px}
+/* config */
+#config{gap:8px}
+#cfgStrip{height:52px;flex:none;display:none;align-items:center;gap:16px}
+#cfgStrip .btn{width:150px;height:52px;font-size:28px}
+#cfgStrip .ct{font-size:28px;color:#E6EDF3}
+/* the two scrolling lists (menu, group), thin scrollbar like the firmware's */
+#cfgMenu,#rows{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:#3A4656 transparent}
+#cfgMenu::-webkit-scrollbar,#rows::-webkit-scrollbar{width:6px}
+#cfgMenu::-webkit-scrollbar-thumb,#rows::-webkit-scrollbar-thumb{background:#3A4656;border-radius:3px}
+.mrow{flex:none;height:62px;background:#1B2635;border:1px solid #3A4656;border-radius:12px;padding:0 12px;display:flex;align-items:center;cursor:pointer;font-size:28px;color:#E6EDF3}
+.mrow:active{background:#131b26}
+.mrow svg{width:30px;height:30px;fill:#22D3EE;margin:0 24px 0 6px;flex:none}
+.mrow .ar{margin-left:auto;color:#8B98A9;padding-right:6px}
+.crow2{height:62px;background:#1B2635;border:1px solid #3A4656;border-radius:12px;padding:12px;position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:28px;cursor:pointer;flex:none}
+.crow2:active{background:#131b26}
+.crow2 .n{color:#E6EDF3;padding-left:2px;white-space:nowrap}
+.crow2 .v{color:#22D3EE;padding-right:2px;white-space:nowrap}
+.crow2.ro{cursor:default}
+.crow2.ro:active{background:#1B2635}
+.crow2 .slider{display:flex;align-items:center;gap:14px}
+.crow2 input[type=range]{width:220px;accent-color:#22D3EE;height:20px;cursor:pointer}
+/* modals */
+.modal{position:absolute;left:0;top:0;width:800px;height:480px;background:rgba(0,0,0,.7);display:none}
+.modal.on{display:block}
+#confirm .dlg{position:absolute;left:120px;top:50%;transform:translateY(-50%);width:560px;padding:20px;display:flex;flex-direction:column;gap:14px}
+#confirm .q{font-size:32px;color:#E6EDF3;line-height:1.15}
+#confirm .s{font-size:20px;color:#22D3EE;line-height:1.3}
+#confirm .bb{height:56px;display:flex;justify-content:space-between;align-items:center}
+#confirm .bb .btn{width:240px;height:52px;font-size:28px}
+#editor .edcard{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:352px;padding:16px;display:flex;flex-direction:column;gap:10px}
+#editor .t{font-size:32px;color:#22D3EE;line-height:1.1}
+#editor .h{font-size:20px;color:#8B98A9;line-height:1.25}
+#editor .ta{height:58px;background:#0B0F14;border:2px solid #3A4656;border-radius:6px;padding:6px 10px;font-size:32px;line-height:42px;color:#FBBF24;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+#editor .ta .cur{display:inline-block;width:3px;height:34px;background:#22D3EE;vertical-align:-5px;margin-left:2px}
+#editor .live{font-size:20px;color:#4ADE80;min-height:24px}
+#kb{position:absolute;right:14px;top:14px;width:416px;height:452px;background:#141C26;padding:8px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:8px;border-radius:12px}
+#kb .k{background:#1B2635;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#E6EDF3;cursor:pointer}
+#kb .k.sm{font-size:28px}
+#kb .k:active{background:#131b26}
+#hist{top:44px;height:436px}
+#hist .dlg{position:absolute;left:8px;top:8px;width:784px;height:420px;padding:14px;display:flex;flex-direction:column;gap:6px}
+#hist .hh{height:52px;display:flex;align-items:center;gap:8px;flex:none}
+#hist .hh .t{flex:1;font-size:20px;color:#E6EDF3}
+#hist .hh .btn{width:100px;height:48px;font-size:20px;color:#8B98A9}
+#hist .hh .btn.on{background:#22D3EE;color:#0B0F14}
+#hist .hh .x{width:64px;height:48px;font-size:28px;color:#E6EDF3}
+#hist .crow{height:216px;position:relative;flex:none}
+#hist canvas{position:absolute;left:52px;top:0}
+#hist .yl{position:absolute;left:0;width:44px;text-align:right;font-size:20px;color:#8B98A9}
+#hist .xr{height:22px;position:relative;font-size:20px;color:#E6EDF3;flex:none}
+#hist .leg{font-size:20px;color:#8B98A9}
+#hist .sum{font-size:20px;color:#E6EDF3;line-height:1.3}
+#hist .empty{position:absolute;left:52px;right:0;top:95px;text-align:center;font-size:28px;color:#8B98A9}
+#toast{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);background:#22D3EE;color:#0B0F14;font-size:20px;padding:8px 18px;border-radius:10px;display:none;white-space:nowrap}
+@media (prefers-reduced-motion: reduce){ .caldue{transition:none} }
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <h1>PCA Model 247 &mdash; virtual panel</h1>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.40. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="stage" id="stage">
+        <div class="bezel">
+          <div id="dev" aria-label="PCA instrument screen">
+            <!-- top bar -->
+            <div id="top">
+              <img class="logo" id="logo" alt="Micrometrix" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAAAhCAYAAAA7zlIvAAAKHUlEQVR42u2ce7BVVR3HP/uccy9wudx4XK+NA0ym9LCaiZhCxVHH0EkiEYqcUgzJGJMiKVNRo7TSBnr5qAjHSptQixQfNU1RSkXhTE1gmZA0FQZ2DYEL93nOPmf3x/mumV9r1j7n3MtlENhr5sy+e531+v3W9/dc69xo98sHKxy5EgNNwHLgS0BBdVk5yksuY0FWMmBlJQNWVjJgZSUrGbCycuwCK9GnXqlk7M2AZUvUQJ9cA+DLZ+w9fkvB/F3W+xPAtQJPxQNUBTgFWK/3KABEN84DwC2mn3t+EziPLF913ADLmbe9wPYafbYDX6aa1Cx5YzgA/Qf4OPByoH9Xxvbj0xQWVN9kzJ775PX9rcBzalPxwJkDPiFQ2THc34WM7ccnsBKBJfQp6/t+YLHnyMcCzaPADwXCUmCMJGP7UVciDyu5oQKrlgPvfKjfAnfq75KA1AUsVf9DAZDTjIUaQUBk2vjt8kbzHqsKYSj05erwtFYwVgHGGF85atTHsnX1QFHW4m4EZgOv0YTLgJ3DcJhcDoAoCRAbN9j/WCuVIaZzBtvPgWc0cAnQKiXyO2BLLQVS8KS8AlwAvA54PhAZ+o5+L/AR4FfAw8B3NU58iNK4GDhB7zuB+wJEtABLgBH6bivwmPpfAZwIPA78uQYdR6OmqgCzgLcDG4GnGqDPfX8mcC7wT2BtA5YlUr+Zyga0Arv1vgvYkzZGwRukDIwH7gHOMSmFpIZJfBK4F/h5SvphsCo3B3xOwHBlgwjJGWLPAVaaNo8LWHmZ6BagKGDlTcTqrzERLaH8XBLQfn47v000CFOTpkHS1unmvgz4AHC3XJKC/N40GhywFkoR7BKw7P6WAzS6fORI4K/ADVIgG4HXAv817WqmGwrAX4TsZcDXNHA90/J3RX2NZuXrlb3ABDGjALwbWGOISID36nvr37nNuhTokCa1prt8iGYil9Iu8k4l4kGam8SzHOU6Jr5Tc7ykZ1yHBlf3LeCPsgIEBCIxgmvHKQJvA+4A2oBpsiI0Ygqd1D4GfEVm7RHgXymqNieCTpaGmT+MKj9vkrWzJaFrjGS1AhdJSjdTTbjmDIN6BM6SR99JwFsE2mb12Q38DJgBvFk05TXGbklnxWzQVOAsadRO4PfAH8w8JwJzNF8lwOtY9fvF2y3expaBScAbJRwuTfOSUjzvBE7XeGcBV2rj7wfeAJxt9rIf+Dfwa9X1iS+9mvNC+ccviNfON56mz4A02y+BieJnSVqys1Efy5UO4CbgU8CDIiIXkDInpWu0ScVhBJaTpAdl22cAU+T3IT/hBOAXMpPnmT4R8D2BaClwlzbyWuBm4FXeXM8JWFfKVPhlJXC9NvgbMiV+WSu/sAd4PfDtQdC6GrjaCO9twDUyP7bsoZqUXm00xQX6IGDNklLwy9dlgZYAHwO2Cbg5qichAPOkSKaIH+3AZwW0LrkXHcA+gaumf5arYd8XANNFZDng6Je1cTMPw9lgYpi5Tuu52Hz/frVZJ1+KwCbEBuwXAasEqrXA5TKXl4k+xLBYvtoUYIXqZ+l5o0DVLbrfCnxUGuCDwBeMVovlf3xY81ynugEB/FK5GQBXAe8QPxfKj+nXut4nuueJ5nVa23rx5B69n6ax+jXPBtV/UvVn6HnQmNAc8BMls5EwTJW/3C6g3mqUSKR+pTS/qp7GcknQLcDnxYD1xiQ6dT5F0hUfxmz6CDHzM3JWVwHjZB4Tme0VgcNzP4+1WBt+H7CoTl5sH7BDUnuDANIikJQlxXepz1bRv1rj3qzNLQhE31G7idJ8RYHhgAD+Lmm4ycDTAmhZwLgjZZ37ZaKdr7UjkKc6oPqfCvB7PRrz4l+HNNG5wFxFmG3S4ks8n9aa6wqHcLuhmeoh8g75W0nABI4+zDmjscAzcjanyveYIXA9TfVMsq1Gf+djnSpaN4mxI01idURK1PeshGeu/KZXa0M2qF+LnhvVfozqYjPOWLUZb3g73oD+oJ5unZM0xxyBsCi/qKgAqc0cj2H8xJYUGnbKlVgQuMrkosVWae5/6O8uacjugLlLGsjKp2os27ikSTfLfNyv768WykvGBEbehxp+WaNlnJ6PSGVfArxJdc5ENjWQ4OsXU5ob0LAuIuo3mqFNAtSkTSybFMbIGoyPvajNWYTYaFa7zgGNsUvRecG4IS+aI7LEO/TPpWTK+wXMWvzpk1lv1TgjFJBta1ApVTylU0nTWPY8MJFmuE02uFXSe7uJPCKjHVyonQQ+caNq1PQZpfdH9Vyu6LMo/yBJuXyYmPQJEgznN441vojze0JjRGbTXhSjE+BDeh4ULYtMIrdLG5OknBQkARDbdW4zyd73KGqbLZN5hVmr26cJoqE7ZZ5cQPgSA4QD2tOHFAxtlaD8QHmqcg2r5gRwspK1iTnqiUKS2ybwOGmJFDkspHrHqqI2sZFaF2Z3mH6hFEJZ5pMGrvNEBlibpapP1vtv+P+rPVHgrNBqx6/KRztDCdONktS8NnOlmTPnbbw7SVghn+4qMf0Zac8LjXNf0ib664mMf0ONdd4p0ztHa9xhTNYe+Xd90qR50TRSLsF1BjB5D0Q+0Nw6eoAfy1z+SUnnu2WdfqTURa9nEt0+LpKA98iS3K7Ic6FvCt0Z4XzDLIvOZkmPZTjGwVstTVDP3LWaKDIOmFEkgUUjAX1KPSxT3wc8M1f05u5VnWPK34DzFYycqajMlU0KCkreOFa15xUtzhfAbJj/LPBFs6aSNEuvGSPxzJJbZ5835ybxfoXWebZZZ6d83kibP005rQUa53rDi14jJNZMDRjfDap35uYqj3W5tPA1ijKnSeCWmlMZt/ZJyt09pJTPOOD7ypedCnRHgV9CR3V+uRwN8UpzKJ3gfgn9aaqXB10ZI5NywMuPtauvvUA4SlqwW4x1WrdZ7XzzM9oIUU7M7tN8Y7xx0spk5ck6pUn90i7a9ps6d5KwL0DnnsAYdp2RxusJBDcuqdotesarXci3alLKpV/tJxhBHvD8p3GavzMwzpMC0UQvyn5CQdbFUcpP7JMhACcZ5Im5PW9cpRDeqdmSOc7JGy1ZMj5DZMBZNikGTP8mIwQ5z0G2kVFTyjghcx5rY9zt2VGe+U8kDJHA7epKZnOjOut0Y4TWGXL23Vz2iCstlRSbsYrGejSZscpmvc1mPpfEbZe2OkXC84JOLfI6anuq0MDmMwTAMMiLhvOE/rxhIoEcSlSj3vcl0hzyKMWpDo1Djeg28hzw0ByVOmsfzDr9dIHfptIADf7a0tqH2lXkxpxkBMelcJYriu2Xkjji14Rd1HGvnL+svPLLaJm7dXqfKX8wViCxHbilcITvKdkry1H232Z4pV9PTgSeh5UoPl2R+ihzZno+cFrhCP/+L2/8jmQYr91kZfhLYs5UZygidVdppiuHV6F6STQpKB9zJE1hwWS4M1AdHZrreYHqJkWZ06meky52kfD/ALezN70YvKTMAAAAAElFTkSuQmCC">
+              <div class="brand" id="brand">PCA Model 247</div>
+              <div class="title" id="scrTitle" style="left:0"></div>
+              <div class="caldue" id="caldue" style="display:none;left:0">&#9888; CAL DUE</div>
+              <div class="clock" id="clock">--:--:--</div>
+            </div>
+            <!-- nav rail: Home / Titrate / Scope / Files / Config (NAV_SCREEN in ui.cpp) -->
+            <div id="nav">
+              <div class="it on" data-s="home"><svg viewBox="0 0 24 24"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg><span>Home</span></div>
+              <div class="it" data-s="titrate"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg><span>Titrate</span></div>
+              <div class="it" data-s="scope"><svg viewBox="0 0 24 24"><path d="M12 5C6.5 5 2.6 9.1 1 12c1.6 2.9 5.5 7 11 7s9.4-4.1 11-7c-1.6-2.9-5.5-7-11-7zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9zm0-7a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg><span>Scope</span></div>
+              <div class="it" data-s="files"><svg viewBox="0 0 24 24"><path d="M2 5h7l2 2h11v13H2z"/></svg><span>Files</span></div>
+              <div class="it" data-s="config"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.5 7.5 0 0 0-1.7-1L15 3.3H9l-.4 2.6a7.5 7.5 0 0 0-1.7 1l-2.5-1-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.5 7.5 0 0 0 1.7 1l.4 2.6h6l.4-2.6a7.5 7.5 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg><span>Config</span></div>
+            </div>
+
+            <div id="content">
+              <!-- HOME -->
+              <div class="scr on" id="home">
+                <div class="card gcard">
+                  <div class="hdr"><div class="mode rel" id="hMode">RELATIVE</div><div class="pchip" id="hChip">NEUTRAL</div></div>
+                  <div class="mid"><div class="other" id="hOther"></div><div class="digits" id="hDigits">0</div></div>
+                  <div class="ftr"><div class="state" id="hState">Ready</div><div class="rawl" id="hRaw"></div><div class="unit">mV</div></div>
+                </div>
+                <div class="brow">
+                  <div class="btn ink" id="bTitr" style="flex:2;background:#4ADE80">Start Titration</div>
+                  <div class="btn" id="bZero" style="flex:1">ZERO</div>
+                </div>
+              </div>
+
+              <!-- TITRATE -->
+              <div class="scr" id="titrate">
+                <div class="tiles">
+                  <div class="tile"><div class="cap">Current mV</div><div class="val" id="tCur">--</div></div>
+                  <div class="tile"><div class="cap">Elapsed</div><div class="val" id="tEl">--</div></div>
+                  <div class="tile"><div class="cap">Titrant uL</div><div class="val" id="tVol">--</div></div>
+                  <div class="tile"><div class="cap">Doses</div><div class="val" id="tDoses">0</div></div>
+                </div>
+                <div class="card tcard" id="tCard">
+                  <div class="zline" id="tZero"></div>
+                  <canvas id="tC" width="600" height="160"></canvas>
+                  <div class="axl" id="tYt">+100</div>
+                  <div class="axl" id="tY0" style="color:#22D3EE">0</div>
+                  <div class="axl" id="tYb">-100</div>
+                  <div class="axl" id="tXe"></div>
+                  <div class="tempty" id="tEmpty">Press START TITRATION on Home</div>
+                  <div class="tstat" id="tStat">Idle</div>
+                </div>
+                <div class="arow"><div class="vbtn" id="bMode"><div class="cap">Mode</div><div class="val" id="tMode">Normal</div></div><div class="btn ink abtn" id="bAuto" style="background:#22D3EE">Auto Titrate</div></div>
+              </div>
+
+              <!-- SCOPE -->
+              <div class="scr" id="scope">
+                <div class="tiles">
+                  <div class="tile"><div class="cap">Sine Vpp</div><div class="val" id="scVpp">--</div></div>
+                  <div class="tile click" id="tHealth"><div class="cap">Signal Health &nbsp;&#8250;</div><div class="val" id="scHealth">--</div></div>
+                  <div class="tile"><div class="cap">Motor RPM</div><div class="val" id="scRpm">--</div></div>
+                </div>
+                <div class="card scard">
+                  <canvas id="scC" width="612" height="0"></canvas>
+                  <div class="leg"><span style="color:#33B5E5">Sine (A1)</span>&nbsp;&nbsp;&nbsp;<span style="color:#FBBF24">Square (A2)</span>&nbsp;&nbsp;&nbsp;512 ms window</div>
+                  <div class="nosig" id="nosig" style="display:none">No sensor signal</div>
+                </div>
+              </div>
+
+              <!-- FILES -->
+              <div class="scr" id="files">
+                <div id="fiStrip"><div class="btn" id="fiBack">&#8249;&nbsp;&nbsp;Back</div><span class="ct">Titration runs</span></div>
+                <div id="fiMenu"></div>
+                <div id="fiPage">
+                <div class="card dcard">
+                  <div class="drow"><span class="n">Last run</span><span class="v" id="fiStart">-</span></div>
+                  <div class="drow"><span class="n">Duration</span><span class="v" id="fiDur">-</span></div>
+                  <div class="drow"><span class="n">Exported as</span><span class="v" id="fiFile">not yet</span></div>
+                  <div class="drow"><span class="n">Stored on unit</span><span class="v" id="fiStore">-</span></div>
+                </div>
+                <div class="status" id="fiUsb">USB: drive ready</div>
+                <div id="fiBar" style="display:none;height:14px;border-radius:7px;background:#253041;overflow:hidden;flex:none"><div id="fiBarIn" style="height:100%;width:0;background:#22D3EE;border-radius:7px"></div></div>
+                <div class="status" id="fiStatus" style="margin-top:-8px"></div>
+                <div class="frow">
+                  <div class="btn" id="bExp" style="background:#4ADE80"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:10px"><path fill="#0B0F14" d="M12 2 8.5 6H11v9.2L7.6 12.9V10.7a1.8 1.8 0 1 0-1.6 0v3.1l5 3.4V19a2 2 0 1 0 2 0v-3.6l5-3.3v-2.5h1.2V6.9h-4v2.7H16v1.9l-3 2V6h2.5z"/></svg>Export run</div>
+                  <div class="btn" id="bExpAll" style="background:#A78BFA"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:10px"><path fill="#0B0F14" d="M2 5h7l2 2h11v13H2z"/></svg>Export all</div>
+                </div>
+                </div>
+              </div>
+
+              <!-- CONFIG -->
+              <div class="scr" id="config">
+                <div id="cfgStrip"><div class="btn" id="cfgBack">&#8249;&nbsp;&nbsp;Back</div><span class="ct" id="cfgTitle"></span></div>
+                <div id="cfgMenu"></div>
+                <div id="rows"></div>
+              </div>
+
+              <!-- PUMP (Config -> Pump -> Pump controls, or the Service screen) -->
+              <div class="scr" id="pump">
+                <div class="card pu-strip">
+                  <span class="pu-ro"><b id="puState">Idle</b></span>
+                  <span class="pu-ro"><i>Steps</i><b id="puSteps">0</b></span>
+                  <span class="pu-ro"><i>Volume uL</i><b id="puVol">0</b></span>
+                  <span class="pu-ro"><i>Doses</i><b id="puDoses">0</b></span>
+                </div>
+                <div class="pu-cap"><b>PRIME</b><span>Fill the tube from the bottle. Reverse runs it back.</span></div>
+                <div class="pu-row">
+                  <div class="btn" id="pPrime" style="flex:1">Prime</div>
+                  <div class="btn" id="pRev" style="flex:1">Reverse</div>
+                  <div class="vbtn" data-f="primeFlow" style="flex:1"><div class="cap">Flow uL/min</div><div class="val" id="puPFlow">--</div></div>
+                  <div class="vbtn" data-f="primeTo" style="flex:1"><div class="cap">Auto-stop s</div><div class="val" id="puPTo">--</div></div>
+                </div>
+                <div class="pu-cap"><b>DOSE</b><span>Add titrant by hand: a drop, a dose, or one motor step.</span></div>
+                <div class="pu-row">
+                  <div class="btn ink" id="pDrop" style="flex:5;background:#22D3EE">1 Drop</div>
+                  <div class="btn ink" id="pDose" style="flex:4;background:#4ADE80">Dose</div>
+                  <div class="btn" id="pStep" style="flex:5">1 Step</div>
+                  <div class="vbtn" data-f="ulDrop" style="flex:5"><div class="cap">Drop uL</div><div class="val" id="puDrop">--</div></div>
+                  <div class="vbtn" data-f="doseUl" style="flex:5"><div class="cap">Dose uL</div><div class="val" id="puDose">--</div></div>
+                  <div class="vbtn" data-f="flow" style="flex:7"><div class="cap">Rate uL/min</div><div class="val" id="puFlow">--</div></div>
+                </div>
+                <div class="pu-cap"><b>CALIBRATE</b><span>Reset, Cal Run into a weighed cup, then Enter mL.</span></div>
+                <div class="pu-row">
+                  <div class="btn" id="pReset" style="flex:5">Reset</div>
+                  <div class="btn" id="pCal" style="flex:6">Cal Run</div>
+                  <div class="vbtn" data-f="calFlow" style="flex:7"><div class="cap">Flow uL/min</div><div class="val" id="puCFlow">--</div></div>
+                  <div class="btn" id="pEnterMl" style="flex:7">Enter mL</div>
+                  <div class="vbtn" data-f="ulStepCfg" style="flex:6"><div class="cap">uL/step</div><div class="val" id="puCal">--</div></div>
+                </div>
+                <div class="pu-bot">
+                  <div class="status" id="puStatus">Idle</div>
+                  <div class="btn ink" id="pStop" style="background:#F87171">STOP</div>
+                </div>
+              </div>
+
+              <!-- SERVICE -->
+              <div class="scr" id="service">
+                <div class="card dcard">
+                  <div class="dcap">Calibration reminder</div>
+                  <div class="drow"><span class="n">Status</span><span class="v" id="svState">-</span></div>
+                  <div class="drow"><span class="n">Last calibrated</span><span class="v" id="svLast">-</span></div>
+                  <div class="drow" id="svIntRow" style="cursor:pointer;border-radius:8px"><span class="n">Interval</span><span class="v" id="svInt">-</span></div>
+                </div>
+                <div class="status" id="svMsg"></div>
+                <div class="srow">
+                  <div class="btn" id="svUnlock">Unlock</div>
+                  <div class="btn g" id="svMark">&#10003;&nbsp; Mark calibrated</div>
+                  <div class="btn g" id="svZero">Clear zero</div>
+                </div>
+                <div class="srow">
+                  <div class="btn" id="svPump">Pump &nbsp;&#8250;</div>
+                  <div class="btn g" id="svPin">Change PIN</div>
+                  <div class="btn g" id="svReset" style="color:#F87171">Factory reset</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- modals -->
+            <div class="modal" id="hist">
+              <div class="card dlg">
+                <div class="hh">
+                  <div class="t">Signal Health history</div>
+                  <div class="btn" data-d="7">7 days</div><div class="btn" data-d="30">30 days</div><div class="btn" data-d="60">60 days</div>
+                  <div class="btn x" id="histX">&#10005;</div>
+                </div>
+                <div class="crow">
+                  <div class="yl" id="hy0" style="top:0">100</div><div class="yl" id="hy1" style="top:48px"></div><div class="yl" id="hy2" style="top:96px"></div><div class="yl" id="hy3" style="top:144px"></div><div class="yl" id="hy4" style="top:192px">80</div>
+                  <canvas id="hiC" width="704" height="216"></canvas>
+                  <div class="empty" id="hiEmpty" style="display:none"></div>
+                </div>
+                <div class="xr"><span id="hx0" style="position:absolute;left:52px"></span><span id="hx1" style="position:absolute;left:0;right:0;text-align:center;padding-left:52px"></span><span style="position:absolute;right:0">now</span></div>
+                <div class="leg" id="hiLeg"></div>
+                <div class="sum" id="hiSum"></div>
+              </div>
+            </div>
+            <div class="modal" id="confirm">
+              <div class="card dlg">
+                <div class="q" id="cfQ"></div>
+                <div class="s" id="cfS"></div>
+                <div class="bb"><div class="btn" id="cfNo">Cancel</div><div class="btn ink" id="cfYes" style="background:#4ADE80">Confirm</div></div>
+              </div>
+            </div>
+            <div class="modal" id="editor">
+              <div class="card edcard">
+                <div class="t" id="edT"></div>
+                <div class="h" id="edH"></div>
+                <div class="ta"><span id="edV"></span><span class="cur"></span></div>
+                <div class="live" id="edL"></div>
+              </div>
+              <div id="kb"></div>
+            </div>
+            <div id="toast"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="below">
+        <div class="box">
+          <h2>Try this</h2>
+          <ol class="steps">
+            <li>Open <b>Titrate</b>, tap <b>Auto Titrate</b> and <b>Confirm</b>. Watch the opening dose, the settling after each dose, and the doses shrinking as the reading closes on zero. Set speed to &times;10 on the right to watch a whole run in a few seconds.</li>
+            <li>When it ends, open <b>Files</b>: the run is already stored on the unit. Press <b>Export run</b> to copy it to the stick (or <b>Export all</b> for every stored run), then tap it in the file list on the right to read the CSV.</li>
+            <li>Set <b>Titrant bottle: Empty</b> and run again. The pump turns but nothing arrives, and after eight doses (and at least a tenth of Max titrant) that together move it less than 3 mV the titrator stops with <b>No response</b>.</li>
+            <li>During a run, set <b>Sensor: Cable cut</b>. The run ends, Home shows <b>----</b> and <b>SENSOR FAULT</b>, and Start, Auto and ZERO are dimmed until the cable is back.</li>
+            <li>Tap the yellow <b>RELATIVE</b> chip on Home to switch to the absolute reading. The small grey line under it is the other one.</li>
+            <li>On <b>Files</b>, press <b>Export configuration</b> and open <code>PCA_Config.txt</code> on the right: every setting as plain text. Change a setting, then <b>Import configuration</b> puts it back.</li>
+            <li>Tap <b>Mode</b> beside Auto Titrate to choose <b>Cautious</b>, <b>Normal</b> or <b>Aggressive</b>, then run the same sample again (tap the sample button for a fresh one): fewer, bigger doses and shorter waits, or more, smaller ones.</li>
+            <li>Set <b>Pump motor supply: Off</b> and press <b>1 Drop</b> on the Pump page: the steps count but nothing reaches the sample. Turn on <b>Config &rarr; Pump &rarr; Power sense</b> and the page says <b>NO POWER</b> and refuses instead.</li>
+            <li>Press <b>Make calibration due</b>. Tap the flashing <b>CAL DUE</b> badge, unlock with PIN <b>1234</b>, then <b>Mark calibrated</b>. The same PIN guards <b>Config &rarr; Sensor &rarr; Input @ 4 mA</b>.</li>
+          </ol>
+        </div>
+        <div class="box">
+          <h2>What is real here</h2>
+          <p class="note">Screens, layout, colours, wording, menus, the keypad, the auto-titrator's control logic and its messages, the sensor-fault rule, the run file format (Schema 4), the results log, the Signal Health formula and the service PIN rules follow the firmware source. The sample chemistry, the pump and the sensor are simulated, and the runs and health history before you opened the page are generated so the screens are not empty. A fresh sample is placed in the cell whenever a new run starts after a finished one. Fonts are close, not identical.</p>
+        </div>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="box">
+        <h2>Scenarios</h2>
+        <div class="row"><span class="lab">Sample in the cell (tap for a fresh one)</span>
+          <button class="sc on" data-g="sample" data-v="anionic">Anionic</button>
+          <button class="sc" data-g="sample" data-v="cationic">Cationic</button>
+          <button class="sc" data-g="sample" data-v="neutral">Near neutral</button>
+          <button class="sc" data-g="sample" data-v="polymer">Polymer (S-curve)</button>
+        </div>
+        <div class="row"><span class="lab">Titrant</span>
+          <button class="sc on" data-g="titrant" data-v="ok">Opposite charge</button>
+          <button class="sc" data-g="titrant" data-v="wrong">Wrong charge</button>
+        </div>
+        <div class="row"><span class="lab">Titrant bottle</span>
+          <button class="sc on" data-g="bottle" data-v="full">Full</button>
+          <button class="sc" data-g="bottle" data-v="empty">Empty</button>
+        </div>
+        <div class="row"><span class="lab">Sensor</span>
+          <button class="sc on" data-g="sensor" data-v="healthy">Healthy</button>
+          <button class="sc" data-g="sensor" data-v="fouling">Fouling</button>
+          <button class="sc" data-g="sensor" data-v="cut">Cable cut</button>
+        </div>
+        <div class="row"><span class="lab">USB stick</span>
+          <button class="sc on" data-g="usb" data-v="in">Inserted</button>
+          <button class="sc" data-g="usb" data-v="out">Removed</button>
+        </div>
+        <div class="row"><span class="lab">Pump motor supply</span>
+          <button class="sc on" data-g="ppower" data-v="on">On</button>
+          <button class="sc" data-g="ppower" data-v="off">Off</button>
+        </div>
+        <div class="row"><span class="lab">Time speed</span>
+          <button class="sc on" data-g="speed" data-v="1">&times;1</button>
+          <button class="sc" data-g="speed" data-v="10">&times;10</button>
+          <button class="sc" data-g="speed" data-v="60">&times;60</button>
+        </div>
+        <div class="row" style="margin-bottom:0">
+          <button class="pbtn" id="bCalDue">Make calibration due</button>
+          <button class="pbtn" id="bReset">Restart demo</button>
+        </div>
+      </div>
+      <div class="box">
+        <h2>Files</h2>
+        <p class="note">Every finished run is saved on the instrument (7 MB of flash, about 600 runs). The stick is written only when you export. Tap a file to read it.</p>
+        <h3>On the instrument</h3>
+        <div class="files" id="unitList"></div>
+        <h3>USB stick</h3>
+        <div class="files" id="usbList"></div>
+        <div class="csvhead" id="csvHead" hidden><span id="csvName"></span><button class="pbtn" id="csvCopy">Copy</button></div>
+        <pre class="csv" id="csvView" hidden></pre>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => v<a?a:v>b?b:v;
+const gauss = () => { let u=0,v=0; while(!u) u=Math.random(); v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); };
+
+// ------------------------------------------------------------------ scale the 800 x 480 panel to the stage
+const stage = $('stage'), dev = $('dev');
+function fit(){ const s = stage.clientWidth/800; dev.style.transform = 'scale('+s+')'; }
+new ResizeObserver(fit).observe(stage); fit();
+
+// ------------------------------------------------------------------ firmware constants (PCA 0.9.21)
+const FW = '0.9.40';
+const DEF = { zero:0, gain:1.00, avg:32, showAbs:false, showRaw:false, calVmin:0.478, calVmax:2.340,
+  sps:800, doseSteps:9690, ulStep:0.0258, ulDrop:12.5, primeSps:2000, primeTo:600,
+  band:2.5, approach:0.60, settle:10, maxDrops:20, openDrops:5, maxMl:10.0, bright:80, calInt:90, pin:'1234', pPowerSense:false, calSps:1500 };
+const TRUE_UL_STEP = 0.0258;         // what the simulated pump really moves per step
+const DT = 0.25;                     // the firmware's 250 ms reading / titrator tick
+const STABLE_MV = 1.0, STABLE_WIN = 2.0, AT_MAX_STEPS = 200, AT_NO_RESPONSE_DOSES = 8, AT_NO_RESPONSE_MAX_FRAC = 0.10, AT_STEEP_RATIO = 3, AT_STEEP_CAP_FRAC = 0.25, AT_RAMP_FACTOR = 1.5;   // 3 until 0.9.32, 5 until 0.9.40
+// titration mode (0.9.31): presets of approach / settle / largest dose; Custom when they match none
+const AT_MODES = [ {name:'Cautious',approach:0.40,settle:15,maxDrops:10}, {name:'Normal',approach:0.60,settle:10,maxDrops:20}, {name:'Aggressive',approach:0.85,settle:6,maxDrops:40} ];
+function atMode(){ const i=AT_MODES.findIndex(m=>Math.abs(S.approach-m.approach)<0.005 && S.settle===m.settle && S.maxDrops===m.maxDrops); return i<0?3:i; }
+function atModeName(m){ return m<3?AT_MODES[m].name:'Custom'; }
+function atModeNext(){ if (atRunning()){ S.atStatus='Mode can be changed when the run ends'; return; }
+  const c=atMode(), m=c>=3?0:(c+1)%3, M=AT_MODES[m]; S.approach=M.approach; S.settle=M.settle; S.maxDrops=M.maxDrops; dirty();
+  S.atStatus=M.name+': doses '+Math.round(M.approach*100)+'% of what is left, up to '+M.maxDrops+' drops, '+M.settle+' s wait'; }
+const TITR_MAX = 600, TITR_MIN_S = 3, OVERSHOOT_S = 2, NEUTRAL = 5;
+const FAULT_MV = -1050, CLEAR_MV = -1025, FAULT_HOLD = 0.5;
+const CAL_STEPS = 50000;   // Cal Run rate is a setting since 0.9.29 (calSps)
+const PUMP_MAX_SPS = 4000;   // 0.9.27: back from 8000 - no need, and the motor gets hot
+const STORE_KB = 7168, BLOCK = 4096, RESERVE_KB = 512;
+const AT = { IDLE:0, BASE:1, DOSING:2, SETTLE:3, DONE:4, ABORT:5 };
+const TO = { IN_PROGRESS:0, ENDPOINT_BAND:1, ENDPOINT_CROSSED:2, ENDPOINT_DROP_FLOOR:3, ZEROCROSS_PASSIVE:4, NO_TITRATION_NEEDED:5,
+  ABORT_NO_RESPONSE:6, ABORT_NO_SLOPE:7, ABORT_WRONG_DIRECTION:8, ABORT_MAX_VOLUME:9, ABORT_MAX_STEPS:10, ABORT_OPENING_DOSE:11,
+  STOPPED_OPERATOR:12, BUFFER_FULL:13, ABORT_SENSOR_FAULT:14, ABORT_PUMP_POWER:15 };
+const TO_NAME = ['IN_PROGRESS','ENDPOINT_BAND','ENDPOINT_CROSSED','ENDPOINT_DROP_FLOOR','ZEROCROSS_PASSIVE','NO_TITRATION_NEEDED',
+  'ABORT_NO_RESPONSE','ABORT_NO_SLOPE','ABORT_WRONG_DIRECTION','ABORT_MAX_VOLUME','ABORT_MAX_STEPS','ABORT_OPENING_DOSE',
+  'STOPPED_OPERATOR','BUFFER_FULL','ABORT_SENSOR_FAULT','ABORT_PUMP_POWER'];
+const TF = { PHASE:0x07, DOSE:0x08, SETTLED:0x10, CLIPPED:0x20, MANUAL:0x40 };
+const PH_NAME = ['IDLE','BASE','DOSE','SETL','DONE'];
+const RESULTS_HEADER = 'Date,Start_time,Run_id,Mode,Outcome,Result_status,Titrant_uL,Titrant_mL,Duration_s,Auto_doses,File';
+const SAMPLE = { anionic:{r:-212, spread:60, slope:0.19}, cationic:{r:185, spread:50, slope:0.17}, neutral:{r:-3, spread:1.5, slope:0.2},
+  // polyelectrolyte (S-curve), after the real DADMAC run of 2026-10-09: nearly flat for ~200 uL, then steep, slow to mix
+  polymer:{r:-333, spread:20, slope:0, eq:300, w:18, top:110, tau:25} };
+
+let S;
+function fresh(){
+  const now = Math.floor(Date.now()/1000);
+  S = Object.assign({}, DEF, {
+    t:now, speed:1, screen:'home',
+    // the cell, the sensor and the reading chain
+    pPower:true, pPowerOk:true,
+    sampleType:'anionic', R0:-212, slopeMag:0.19, titrantWrong:false, bottleEmpty:false, beaker:0, abs:-212,
+    inst:-212, raw:-212, rawInit:false, disp:0, rawCounts:0, sensor:'healthy',
+    fault:false, flipPending:false, flipSince:0,
+    // pump (pump_* globals)
+    pRun:false, pDir:0, pCont:false, pLeft:0, pRate:800, pAcc:0, pFlight:0, pInto:false, pAuto:false, pStartT:0,
+    pTotal:0, pDoses:0, pStatus:'Idle', pLastStop:now-420, pPrimed:true,
+    // titration + auto-titrator
+    run:null, seq:122, lastName:'', titrStatus:'', haveRun:false,
+    at:{ state:AT.IDLE, steps:0, slope:0, gain:0, cap:0, refReading:0, refVolume:0, haveSlope:false, noResp:0, prevReading:0, prevVolume:0, stabRef:0, stabSince:0, phaseT:0, sign0:1, commanding:false },
+    atStatus:'Idle',
+    // run store + stick
+    unit:{}, results:[], svcLog:[], usb:{}, usbIn:true, saveFailed:false,
+    // service
+    calLast: now - 23*86400, unlockedUntil:0, fails:0, lockoutUntil:0, svcStatus:'', afterUnlock:null,
+    // Signal Health
+    health:{valid:false, h:0, rpm:0, vpp:0, phase:50}, hist:[], per:null,
+    cfgGroup:-1, fiRuns:false, cfgIo:'', lastSec:now
+  });
+}
+
+// ------------------------------------------------------------------ formatting
+function pad2(n){ return (n<10?'0':'')+n; }
+function tm(t){ const d=new Date(Math.floor(t)*1000); return {y:d.getFullYear(),mo:d.getMonth()+1,d:d.getDate(),h:d.getHours(),mi:d.getMinutes(),s:d.getSeconds()}; }
+function dateStr(t){ const x=tm(t); return x.y+'-'+pad2(x.mo)+'-'+pad2(x.d); }
+function timeStr(t, sec){ const x=tm(t); return pad2(x.h)+':'+pad2(x.mi)+(sec?':'+pad2(x.s):''); }
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// fmt_mv(): "%+.*f", and "0" when no digit 1-9 would show (no "-0")
+function fmtMv(v, dec){ const s=(v<0?'-':'+')+Math.abs(v).toFixed(dec); return /[1-9]/.test(s) ? s : '0'; }
+function mmss(s){ s=Math.max(0,Math.floor(s)); return Math.floor(s/60)+':'+pad2(s%60); }
+function kb(bytes){ return Math.ceil(bytes/1024); }
+
+// ------------------------------------------------------------------ the cell: sample, titrant, sensor
+function loadSample(type){
+  const p = SAMPLE[type]; S.sampleType = type;
+  S.R0 = p.r + (Math.random()-0.5)*p.spread;
+  S.slopeMag = p.slope*(0.75+Math.random()*0.5);
+  S.curve = p.eq ? {eq:p.eq*(0.85+Math.random()*0.3), w:p.w, top:p.top} : null; S.tau = p.tau || 3.0;
+  S.beaker = 0; S.abs = S.R0;
+}
+function slopeSigned(){ const toward = S.R0<0 ? 1 : -1; return S.slopeMag * toward * (S.titrantWrong ? -1 : 1); }
+function noiseMv(){ return S.sensor==='fouling' ? 2.2 : 0.35; }
+
+// One 250 ms tick of the physics and of the firmware's FAST block.
+function tick(){
+  S.t += DT;
+  pumpTick();
+  // mixing: the reading follows the titrant in the beaker with a few seconds' lag
+  const C = S.curve;
+  const E = C ? (S.titrantWrong ? S.R0 - 0.05*S.beaker : S.R0 + (C.top - S.R0)/(1 + Math.exp(-(S.beaker - C.eq)/C.w)))
+              : S.R0 + slopeSigned()*S.beaker;
+  S.abs += (E - S.abs)*(1 - Math.exp(-DT/(S.tau||3.0)));
+  // A0: buffer mean (unfiltered), then the EMA over avg_samples buffers
+  // A working transmitter pins at 4 mA / 20 mA (-1000 / +1000 mV): measuring can never
+  // take it under 3.6 mA. Only a cut loop (0 mA) reads below the rail and trips the fault.
+  S.inst = S.sensor==='cut' ? -1513 : clamp(S.abs + gauss()*noiseMv(), -1000, 1000);
+  if (!S.rawInit){ S.raw = S.inst; S.rawInit = true; }
+  else S.raw += (S.inst - S.raw)*(1 - Math.exp(-DT*62.5/Math.max(1,S.avg)));
+  const volts = S.calVmin + (S.inst+1000)/2000*(S.calVmax-S.calVmin);
+  S.rawCounts = clamp(Math.round(volts/3.3*65535), 0, 65535);
+  // live zero, judged on the unfiltered value, must hold 0.5 s (see SC_FAULT_MV)
+  const bad = S.fault ? (S.inst < CLEAR_MV) : (S.inst < FAULT_MV);
+  if (bad === S.fault) S.flipPending = false;
+  else if (!S.flipPending){ S.flipPending = true; S.flipSince = S.t; }
+  // working value
+  let d = (S.raw - S.zero)*S.gain;
+  if ((d < -1000 || d > 1000) && S.run && S.run.active) S.run.clipped++;
+  S.disp = clamp(d, -1000, 1000);
+  // the unfiltered spread per second (noise feature)
+  if (S.run && S.run.active){ const R=S.run; if (R.wmin==null){ R.wmin=R.wmax=S.inst; } else { R.wmin=Math.min(R.wmin,S.inst); R.wmax=Math.max(R.wmax,S.inst); } }
+  sensorFaultTick();
+  pumpPowerTick();
+  atService();
+  // passive zero-crossing detector (manual runs)
+  const R = S.run;
+  if (R && R.active && !atRunning()){
+    if (R.sign===0) R.sign = S.disp>=0 ? 1 : -1;
+    if (!R.crossT){
+      if (S.t - R.startT > TITR_MIN_S && ((R.sign<0 && S.disp>=0) || (R.sign>0 && S.disp<=0))) R.crossT = S.t;
+    } else if (S.t - R.crossT >= OVERSHOOT_S) titrFinalize(TO.ZEROCROSS_PASSIVE, 'Passive zero crossing (unsettled)');
+  }
+  // 1 Hz: titration sampler, scope sweep, health history, clock
+  const sec = Math.floor(S.t);
+  if (sec !== S.lastSec){ S.lastSec = sec; secondTick(); }
+}
+
+function secondTick(){
+  const R = S.run;
+  if (R && R.active){
+    if (R.wmin!=null){ const span=R.wmax-R.wmin; R.noiseSum+=span; R.noiseMax=Math.max(R.noiseMax,span); R.noiseN++; R.wmin=null; }
+    let fl = R.flagPending; R.flagPending = 0;
+    const st = S.at.state;
+    if (st===AT.BASE) fl |= 1; else if (st===AT.DOSING) fl |= 2;
+    else if (st===AT.SETTLE){ fl |= 3; if (Math.abs(S.disp - S.at.stabRef) <= STABLE_MV && (S.t - S.at.stabSince) >= STABLE_WIN) fl |= TF.SETTLED; }
+    else if (st===AT.DONE) fl |= 4;
+    if (S.disp <= -1000 || S.disp >= 1000) fl |= TF.CLIPPED;
+    if (R.count < TITR_MAX){ R.vals.push(S.disp); R.vols.push(R.titrant); R.flags.push(fl); R.count++;
+      if (R.count===TITR_MAX && !atRunning()) S.titrStatus='Curve buffer full - still recording volume'; }
+  }
+  if (!S.seeding){ sweep(); histTick(); }
+}
+
+// ------------------------------------------------------------------ live zero (sensor_fault_tick)
+function sensorFaultTick(){
+  if (!S.flipPending || S.t - S.flipSince < FAULT_HOLD) return;
+  S.flipPending = false; S.fault = !S.fault;
+  if (S.fault && S.run && S.run.active){
+    pumpHalt('Stopped');
+    if (atRunning()) atFinish(AT.ABORT, 'Sensor fault - check the sensor cable', TO.ABORT_SENSOR_FAULT);
+    else titrFinalize(TO.ABORT_SENSOR_FAULT, 'Sensor fault - check the sensor cable');
+  }
+}
+
+// ------------------------------------------------------------------ pump (DRV8825 stepper, pump_* functions)
+function pumpStart(dir, steps, rate, into, cal){
+  S.pRun=true; S.pDir=dir; S.pCont=(steps===0); S.pLeft=steps; S.pAcc=0; S.pFlight=0;
+  S.pSrc = cal ? 2 : S.pCont ? 1 : 0;
+  S.pRate=clamp(rate||S.sps,20,PUMP_MAX_SPS);
+  S.pInto=!!into; S.pAuto=S.at.commanding; S.pStartT=S.t;
+  if (dir>0 && S.run && S.run.active) S.run.flagPending |= TF.DOSE;
+}
+function pumpHalt(why){
+  if (S.pRun){ S.pTotal += S.pFlight; S.pLastStop = S.t; }
+  S.pRun=false; S.pDir=0; S.pFlight=0; S.pPrimed=true; S.pStatus=why;
+}
+function pumpTick(){
+  if (!S.pRun) return;
+  if (S.pCont && S.primeTo>0 && S.t - S.pStartT >= S.primeTo){ pumpHalt('Auto-stop after '+S.primeTo+' s'); return; }
+  S.pAcc += S.pRate*DT; let k = Math.floor(S.pAcc); S.pAcc -= k;
+  if (!S.pCont) k = Math.min(k, S.pLeft);
+  if (k<=0) return;
+  S.pFlight += k; if (!S.pCont) S.pLeft -= k;
+  if (S.pDir>0 && S.pInto && !S.bottleEmpty && S.pPower) S.beaker += k*TRUE_UL_STEP;   // no supply, no movement
+  // titr_credit_steps(): the run counts the calibrated volume as steps complete
+  const R = S.run;
+  if (R && R.active && S.pDir>0 && S.pInto){
+    const ul = k*S.ulStep; R.titrant += ul;
+    if (S.pAuto) R.auto += ul; else { R.manual += ul; R.flagPending |= TF.MANUAL; }
+  }
+  if (!S.pCont && S.pLeft<=0){ S.pDoses++; pumpHalt('Done - '+S.pDoses+' doses'); }
+}
+// pump power sense (0.9.28): Config > Pump > Power sense, a divider from the motor supply to D5
+function pMissing(){ return S.pPowerSense && !S.pPowerOk; }
+function pumpPowerTick(){
+  const ok = !S.pPowerSense || S.pPower;
+  if (ok === S.pPowerOk) return;
+  S.pPowerOk = ok;
+  if (!ok){
+    if (S.pRun) pumpHalt('Stopped');
+    if (atRunning()) atFinish(AT.ABORT,'No pump power - check the pump supply',TO.ABORT_PUMP_POWER);
+    else S.atStatus='No pump power - check the pump supply';
+    S.pStatus='No pump power - check the pump supply';
+  } else { S.pStatus='Pump power back'; if (!atRunning()) S.atStatus='Idle'; }
+}
+function pumpBusy(){ if (pMissing()){ S.pStatus='No pump power - check the pump supply'; return true; }
+  if (!S.pRun) return false; S.pStatus = S.pCont ? 'Pump is running - press STOP first' : 'Dose in progress - wait for it to finish'; return true; }
+function pumpDoseUl(ul){ if (pMissing()) return; pumpStart(+1, Math.max(1,Math.round(ul/S.ulStep)), S.sps, true); }
+function flowUlMin(sps){ return sps*S.ulStep*60; }
+// rate keypads: uL/min -> steps/s, saying so when the pump cannot do it (pump_rate_capped_msg)
+function rateSps(ul){ const v=Math.round(ul/60/S.ulStep);
+  if (v>PUMP_MAX_SPS) S.pStatus='Capped at '+flowUlMin(PUMP_MAX_SPS).toFixed(0)+" uL/min - the pump's top speed";
+  else if (v<20) S.pStatus='Raised to '+flowUlMin(20).toFixed(0)+' uL/min - the slowest it steps';
+  return clamp(v,20,PUMP_MAX_SPS); }
+// a rate edited while the pump runs applies at once (pump_rate_setting_changed)
+function rateChanged(){ if (!S.pRun) return; S.pRate = S.pSrc===1 ? S.primeSps : S.pSrc===2 ? S.calSps : S.sps;
+  if (S.pCont) S.pStatus=(S.pDir>0?'Priming':'Purging')+' at '+flowUlMin(S.pRate).toFixed(0)+' uL/min'; }
+
+// ------------------------------------------------------------------ titration run (titr_* globals)
+function newRun(){
+  S.seq++;
+  return { active:true, count:0, vals:[], vols:[], flags:[], startT:S.t, lastT:0, titrant:0, auto:0, manual:0,
+    outcome:TO.IN_PROGRESS, detail:'', sign:0, crossT:0, clipped:0, noiseSum:0, noiseMax:0, noiseN:0, wmin:null, wmax:null,
+    floored:0, noResp:0, wrongDir:0, ramped:0, steepUl:0, dirty:false, flagPending:0, seq:S.seq,
+    idleBefore: Math.max(0, Math.floor(S.t - S.pLastStop)), clockTrusted:true };
+}
+// In the demo a finished sample is swapped for a fresh one when the next run starts.
+function freshSampleIfUsed(){ if (S.beaker > 0){ loadSample(S.sampleType); if (!S.seeding) toast('Fresh sample in the cell'); } }
+function titrToggle(){
+  if (!S.run || !S.run.active){
+    if (S.fault) return;                                  // no run on a broken input
+    if (S.exp){ S.atStatus='Export all is copying - wait for it to finish'; return; }
+    freshSampleIfUsed();
+    S.run = newRun(); atResetState(); S.titrStatus=''; S.haveRun=false;
+  } else titrFinalize(TO.STOPPED_OPERATOR, 'Stopped by operator');
+}
+function titrFinalize(outcome, reason){
+  const R = S.run; if (!R || !R.active) return;
+  R.outcome = outcome; R.detail = reason;
+  atStopForRunEnd();
+  R.active = false; R.lastT = S.t; S.haveRun = R.count>0;
+  S.titrStatus = reason+' - '+R.count+' pts, '+Math.floor(R.lastT - R.startT)+'s';
+  runStoreFinished();
+}
+function resultStatus(o){
+  switch(o){ case TO.ENDPOINT_BAND: case TO.ENDPOINT_CROSSED: case TO.ENDPOINT_DROP_FLOOR: case TO.ZEROCROSS_PASSIVE: case TO.NO_TITRATION_NEEDED: return 'OK';
+    case TO.ABORT_MAX_VOLUME: case TO.ABORT_MAX_STEPS: return 'INCOMPLETE';
+    case TO.ABORT_NO_RESPONSE: case TO.ABORT_NO_SLOPE: case TO.ABORT_WRONG_DIRECTION: case TO.ABORT_OPENING_DOSE: case TO.ABORT_SENSOR_FAULT: case TO.ABORT_PUMP_POWER: return 'FAULT';
+    case TO.STOPPED_OPERATOR: return 'STOPPED'; default: return 'UNKNOWN'; }
+}
+function trainingUse(R){
+  const clean = (R.autoSteps>=2) && R.titrant>0 && R.count<TITR_MAX;
+  switch(R.outcome){ case TO.ENDPOINT_BAND: case TO.ENDPOINT_CROSSED: case TO.ENDPOINT_DROP_FLOOR: return clean?'CURVE':'EXCLUDE';
+    case TO.ABORT_NO_RESPONSE: case TO.ABORT_NO_SLOPE: case TO.ABORT_WRONG_DIRECTION: return 'ANOMALY'; default: return 'EXCLUDE'; }
+}
+
+// ------------------------------------------------------------------ auto-titrator (damped secant, at_service)
+function atRunning(){ const s=S.at.state; return s===AT.BASE || s===AT.DOSING || s===AT.SETTLE; }
+function atResetState(){ const A=S.at; A.state=AT.IDLE; A.steps=0; A.haveSlope=false; A.noResp=0; A.slope=0; A.gain=0; A.cap=0; S.atStatus='Idle'; }
+function atSettled(){
+  const A=S.at;
+  if (Math.abs(S.disp - A.stabRef) > STABLE_MV){ A.stabRef=S.disp; A.stabSince=S.t; return false; }
+  return (S.t - A.stabSince) >= STABLE_WIN;
+}
+function atIssueDose(ul, floored){
+  const A=S.at, R=S.run;
+  A.prevReading=S.disp; A.prevVolume=R.titrant;
+  A.commanding=true; pumpDoseUl(ul); A.commanding=false;
+  A.steps++; R.autoSteps=A.steps; if (floored) R.floored++;
+  A.state=AT.DOSING;
+  S.atStatus='Dose '+A.steps+': '+ul.toFixed(0)+' uL ('+Math.round(ul/S.ulStep)+' motor steps)'+(floored?' min':'');
+}
+function atFinish(st, msg, outcome){
+  S.at.state=st; S.atStatus=msg;
+  if (S.run && S.run.active) titrFinalize(outcome!==TO.IN_PROGRESS ? outcome : (st===AT.DONE ? TO.ENDPOINT_BAND : TO.STOPPED_OPERATOR), msg);
+}
+function atStopForRunEnd(){ if (!atRunning()) return; pumpHalt('Run ended'); S.at.state=AT.ABORT; S.atStatus='Run ended - titrator stopped'; }
+function atService(){
+  const A=S.at, R=S.run;
+  if (!atRunning()) return;
+  switch(A.state){
+    case AT.BASE: {
+      if (!atSettled()) return;
+      A.sign0 = S.disp>=0 ? 1 : -1;
+      if (Math.abs(S.disp) <= S.band){ atFinish(AT.DONE,'Already at endpoint - nothing to titrate',TO.NO_TITRATION_NEEDED); return; }
+      A.haveSlope=false;
+      const open = S.openDrops*S.ulDrop;
+      if (R.titrant + open > S.maxMl*1000){ atFinish(AT.ABORT,'Opening dose exceeds max titrant',TO.ABORT_OPENING_DOSE); return; }
+      A.refReading=S.disp; A.refVolume=R.titrant;
+      atIssueDose(open, false);
+      break; }
+    case AT.DOSING:
+      if (S.pRun) return;
+      A.state=AT.SETTLE; A.phaseT=S.t; A.stabRef=S.disp; A.stabSince=S.t;
+      S.atStatus='Dose '+A.steps+': settling...';
+      break;
+    case AT.SETTLE: {
+      if (S.t - A.phaseT < S.settle) return;
+      if (!atSettled()) return;
+      const r=S.disp, nowUl=R.titrant, doseUl=nowUl-A.prevVolume, minu=S.ulDrop, maxu=S.maxDrops*S.ulDrop, resp=3*STABLE_MV, toward=A.sign0<0?1:-1;
+      if (Math.abs(r) <= S.band){ atFinish(AT.DONE,'Endpoint reached (settled, inside band)',TO.ENDPOINT_BAND); return; }
+      if ((A.sign0>0 && r<0) || (A.sign0<0 && r>0)){ atFinish(AT.DONE,'Endpoint (crossed zero)',TO.ENDPOINT_CROSSED); return; }
+      // 0.9.40: judged over the span since the reading last moved measurably; ramp; steep-part slowdown
+      const spanMv=(r-A.refReading)*toward, spanUl=nowUl-A.refVolume, measured=spanUl>0 && Math.abs(r-A.refReading)>=resp;
+      const lastMv=(r-A.prevReading)*toward, lastG=doseUl>0?lastMv/doseUl:0;
+      let wrongDir=false, why='';
+      if (!measured){
+        A.noResp++;
+        if (A.noResp >= AT_NO_RESPONSE_DOSES && spanUl >= AT_NO_RESPONSE_MAX_FRAC*S.maxMl*1000){ R.noResp=A.noResp; atFinish(AT.ABORT,'No response - check for stall, empty titrant or air in line',TO.ABORT_NO_RESPONSE); return; }
+      } else {
+        A.noResp=0;
+        const spanG=spanMv/spanUl;
+        if (spanG<=0) wrongDir=true;
+        else {
+          const beforeUl=A.prevVolume-A.refVolume;
+          let refG=-1;
+          if (A.haveSlope) refG=A.gain; else if (beforeUl>0){ const bm=(A.prevReading-A.refReading)*toward; refG=Math.max(0,bm)/beforeUl; }
+          const steep = lastMv>=resp && lastG>0 && refG>=0 && lastG>=AT_STEEP_RATIO*refG;
+          let g;
+          if (steep){ g=lastG; const cap=Math.max(minu,AT_STEEP_CAP_FRAC*doseUl); if (A.cap<=0 || cap<A.cap) A.cap=cap; if (R.steepUl<=0) R.steepUl=nowUl; why=' steep'; }
+          else { g=spanG; if (lastMv>=resp && lastG>g) g=lastG; if (A.haveSlope && g<A.gain) g=0.5*(g+A.gain); }
+          A.gain=g; A.slope=g*toward; A.haveSlope=true;
+        }
+        A.refReading=r; A.refVolume=nowUl;
+      }
+      let inc, floored=false;
+      if (wrongDir){ R.wrongDir++; inc=minu; floored=true; why=' away from 0'; }   // AT_ABORT_ON_WRONG_DIRECTION is 0
+      else if (A.haveSlope){
+        const predicted=Math.abs(r)/A.gain;
+        if (predicted < minu){ atFinish(AT.DONE,'Endpoint - within one drop',TO.ENDPOINT_DROP_FLOOR); return; }
+        inc=S.approach*predicted;
+      } else inc=maxu;
+      if (inc < minu){ inc=minu; floored=true; }
+      if (inc > maxu) inc=maxu;
+      const ramp=AT_RAMP_FACTOR*Math.max(doseUl,minu);
+      if (inc > ramp){ inc=ramp; R.ramped++; if (!why) why=' ramp'; }
+      if (A.cap>0 && inc>A.cap) inc=A.cap;
+      if (inc < minu){ inc=minu; floored=true; }
+      if (A.steps >= AT_MAX_STEPS){ atFinish(AT.ABORT,'Too many steps',TO.ABORT_MAX_STEPS); return; }
+      if (R.titrant + inc > S.maxMl*1000){ atFinish(AT.ABORT,'Max volume reached',TO.ABORT_MAX_VOLUME); return; }
+      atIssueDose(inc, floored);
+      if (why) S.atStatus+=' -'+why;
+      break; }
+  }
+}
+function autoToggle(){
+  const A=S.at;
+  if (atRunning()){ pumpHalt('Stopped'); atFinish(AT.ABORT,'Stopped by operator',TO.STOPPED_OPERATOR); return; }
+  if (S.fault){ S.atStatus='Sensor fault - check the sensor cable'; return; }
+  if (pMissing()){ S.atStatus='No pump power - check the pump supply'; return; }
+  if (S.exp && !(S.run && S.run.active)){ S.atStatus='Export all is copying - wait for it to finish'; return; }
+  if (S.ulStep<=0 || S.ulDrop<=0){ S.atStatus='Calibrate the pump first'; return; }
+  if (!S.run || !S.run.active) titrToggle();
+  A.steps=0; A.haveSlope=false; A.noResp=0; A.slope=0; A.gain=0; A.cap=0;
+  A.prevReading=S.disp; A.prevVolume=S.run.titrant; A.stabRef=S.disp; A.stabSince=S.t; A.phaseT=S.t;
+  A.state=AT.BASE; S.atStatus='Waiting for a stable baseline...';
+}
+
+// ------------------------------------------------------------------ run file (write_run_csv) and names
+function baseName(R){
+  const x=tm(R.startT);
+  return x.y+'-'+pad2(x.mo)+'-'+pad2(x.d)+'_'+pad2(x.h)+'-'+pad2(x.mi)+'-'+pad2(x.s)+'_'+String(R.seq%1000).padStart(3,'0');
+}
+function runCsv(R){
+  const inProg = R.active;
+  const L=[];
+  L.push('Micrometrix Model PCA - Titration Export');
+  L.push('Schema,4','Firmware,'+FW,'Run_id,'+R.seq);
+  L.push('Outcome,'+(inProg?'IN_PROGRESS':TO_NAME[R.outcome]),'Outcome_detail,'+(inProg?'Exported while still running':R.detail),
+         'Result_status,'+(inProg?'NOT_A_RESULT':resultStatus(R.outcome)),'Training_use,'+(inProg?'EXCLUDE':trainingUse(R)));
+  L.push('Mode,'+((R.autoSteps||0)>0?'AUTO':'MANUAL'));
+  const dur = Math.floor((inProg?S.t:R.lastT) - R.startT);
+  L.push('Date,'+dateStr(R.startT),'Start_time,'+timeStr(R.startT,true),'Duration_s,'+dur,'Samples,'+R.count);
+  L.push('Clock,RTC','Clock_trusted,YES');
+  L.push('Total_titrant_uL,'+R.titrant.toFixed(1),'Total_titrant_mL,'+(R.titrant/1000).toFixed(4),'Auto_doses,'+(R.autoSteps||0));
+  L.push('Volume_is_lower_bound,'+((R.outcome===TO.ABORT_MAX_VOLUME||R.outcome===TO.ABORT_MAX_STEPS)?'YES':'NO'),'Curve_truncated,'+(R.count>=TITR_MAX?'YES':'NO'));
+  L.push('AT_band_mV,'+S.band.toFixed(2),'AT_approach,'+S.approach.toFixed(2),'AT_settle_s,'+S.settle);
+  L.push('AT_max_dose_drops,'+S.maxDrops,'AT_mode,'+atModeName(atMode()));
+  L.push('AT_open_drops,'+S.openDrops,'AT_max_mL,'+S.maxMl.toFixed(2),'Final_slope_mV_per_uL,'+(R.finalSlope||0).toFixed(4));
+  L.push('Pump_cal_uL_per_step,'+S.ulStep.toFixed(4),'Pump_uL_per_drop,'+S.ulDrop.toFixed(1),'Pump_step_rate_sps,'+S.sps);
+  L.push('Gain,'+S.gain.toFixed(2),'Avg_samples,'+S.avg,'Zero_offset_mV,'+S.zero.toFixed(2));
+  L.push('Settings_changed_mid_run,'+(R.dirty?'YES':'NO'),'Reading_clipped_samples,'+R.clipped);
+  L.push('Noise_span_mean_mV,'+(R.noiseN?R.noiseSum/R.noiseN:0).toFixed(2),'Noise_span_max_mV,'+R.noiseMax.toFixed(2));
+  L.push('Titrant_auto_uL,'+R.auto.toFixed(1),'Titrant_manual_uL,'+R.manual.toFixed(1));
+  L.push('Doses_floored,'+R.floored,'Doses_no_response,'+R.noResp,'Doses_wrong_direction,'+R.wrongDir);
+  L.push('Doses_ramped,'+R.ramped,'Steep_detected_at_uL,'+R.steepUl.toFixed(1));
+  L.push('Pump_idle_before_run_s,'+R.idleBefore,'Pump_primed_since_boot,YES');
+  L.push('','Second,mV,Titrant_uL,Titrant_mL,Phase,Dose,Settled,Clipped,Manual');
+  for (let i=0;i<R.count;i++){ const fl=R.flags[i], ph=fl&TF.PHASE;
+    L.push(i+','+R.vals[i].toFixed(1)+','+R.vols[i].toFixed(1)+','+(R.vols[i]/1000).toFixed(4)+','+PH_NAME[ph<5?ph:0]+','+((fl&TF.DOSE)?1:0)+','+((fl&TF.SETTLED)?1:0)+','+((fl&TF.CLIPPED)?1:0)+','+((fl&TF.MANUAL)?1:0)); }
+  L.push('[END],'+R.count);
+  return L.join('\n')+'\n';
+}
+
+// ------------------------------------------------------------------ run store (QSPI LittleFS) + stick
+function blocks(text){ return Math.ceil(Math.max(1,text.length)/BLOCK); }
+function storeUsedKb(){
+  let b = 2;                                    // superblock + the runs/ directory
+  for (const k in S.unit) b += blocks(S.unit[k]);
+  if (S.results.length) b += blocks(S.results.join('\n'));
+  if (S.svcLog.length) b += blocks(S.svcLog.join('\n'));
+  return b*BLOCK/1024;
+}
+function runNames(){ return Object.keys(S.unit).sort(); }
+function runStoreFinished(){
+  const R=S.run; if (!R || R.count<=0) return;
+  R.finalSlope = S.at.slope;
+  while (STORE_KB - storeUsedKb() < RESERVE_KB && runNames().length) delete S.unit[runNames()[0]];
+  const name = baseName(R)+'.csv', text = runCsv(R);
+  S.unit[name] = text; S.saveFailed=false;
+  S.results.push(dateStr(R.startT)+','+timeStr(R.startT,true)+','+R.seq+','+((R.autoSteps||0)>0?'AUTO':'MANUAL')+','+TO_NAME[R.outcome]+','+resultStatus(R.outcome)+','
+    +R.titrant.toFixed(1)+','+(R.titrant/1000).toFixed(4)+','+Math.floor(R.lastT-R.startT)+','+(R.autoSteps||0)+','+name);
+  // the stick is written only on request since 0.9.37 (the SCM's 0.9.48): no copy here
+  if (!S.seeding) renderFileLists(S.usbIn ? {where:'usb',name} : {where:'unit',name});
+}
+function exportRun(){
+  if (S.exp){ S.titrStatus='An export is already running'; return; }
+  const R=S.run;
+  if (!R || R.count<=0){ S.titrStatus='No run to export'; return; }
+  if (!S.usbIn){ S.titrStatus='No USB drive detected'; return; }
+  const name=baseName(R)+'.csv'; S.usb[name]=runCsv(R); S.lastName=name; S.titrStatus='Saved '+name+'. Safe to remove the stick.';
+  renderFileLists({where:'usb',name});
+}
+// Export all runs in the background (0.9.36, the SCM's 0.9.47): app_export_all() sets the job up,
+// export_step() copies a slice per loop() pass, and the status line counts the runs in the accent colour.
+function exportAll(){
+  if (S.exp){ S.titrStatus='An export is already running'; return; }
+  if (S.run && S.run.active){ S.titrStatus='Not during a titration'; return; }
+  if (!S.usbIn){ S.titrStatus='No USB drive detected'; return; }
+  const names=runNames();
+  S.exp={names, i:0, copied:0, skipped:0, bt:names.reduce((a,n)=>a+S.unit[n].length,0)||1, bd:0};
+  S.titrStatus='Copying runs... 0 of '+names.length;
+  setTimeout(exportStep, 120);
+}
+function exportStep(){
+  const E=S.exp; if (!E) return;
+  if (!S.usbIn){ S.exp=null; S.titrStatus='USB drive lost during the export'; renderAll(); return; }
+  for (let k=0; k<3 && E.i<E.names.length; k++, E.i++){
+    const n=E.names[E.i]; if (!S.unit[n]) continue; E.bd+=S.unit[n].length;
+    if (S.usb[n] && S.usb[n].length===S.unit[n].length){ E.skipped++; continue; }
+    S.usb[n]=S.unit[n]; E.copied++;
+  }
+  if (E.i < E.names.length){ S.titrStatus='Copying runs... '+E.i+' of '+E.names.length; renderAll(); setTimeout(exportStep, 120); return; }
+  if (S.results.length) S.usb['PCA_results.csv'] = RESULTS_HEADER+'\n'+S.results.join('\n')+'\n';
+  if (S.svcLog.length) S.usb['PCA_service_log.csv'] = 'Timestamp,Event,Interval_days\n'+S.svcLog.join('\n')+'\n';
+  S.exp=null;
+  S.titrStatus = E.copied+' runs copied, '+E.skipped+' already on the stick. Safe to remove the stick.';
+  renderFileLists({where:'usb',name:'PCA_results.csv'});
+  renderAll();
+}
+function serviceLog(event){ S.svcLog.push(dateStr(S.t)+' '+timeStr(S.t,true)+','+event+','+S.calInt); renderFileLists(); }
+
+// ------------------------------------------------------------------ scope synthesis + compute_scope() (same as the SCM)
+const SCOPE_N=1024, SPS=2000, FS=4095;
+let sine=new Int32Array(SCOPE_N), square=new Int32Array(SCOPE_N);
+function sensorParams(){ return S.sensor==='fouling' ? {vpp:0.55,noise:70,phase:0.10,rpm:292} : {vpp:1.21,noise:9,phase:0.01,rpm:294}; }
+function sweep(){
+  const p=sensorParams(), f=p.rpm/60, A=p.vpp/3.3*FS/2, q=0.9/3.3*FS, ph0=Math.random()*6.283;
+  let smin=FS,smax=0,qmin=FS,qmax=0;
+  for (let i=0;i<SCOPE_N;i++){
+    const th=ph0+6.2832*f*i/SPS;
+    let s=2048+A*Math.sin(th)+(Math.random()-0.5)*p.noise*2;
+    if (S.sensor==='fouling') s+=A*0.18*Math.sin(3*th+1.2);
+    let sq=1700+(Math.sin(th-1.5708+p.phase*6.283)>0?q:0)+(Math.random()-0.5)*6;
+    s=clamp(Math.round(s),0,FS); sq=clamp(Math.round(sq),0,FS);
+    sine[i]=s; square[i]=sq; if(s<smin)smin=s; if(s>smax)smax=s; if(sq<qmin)qmin=sq; if(sq>qmax)qmax=sq;
+  }
+  const H=S.health; H.valid=false; H.vpp=(smax-smin)/FS*3.3;
+  if ((qmax-qmin) < FS*80/1023 || (smax-smin) < FS*20/1023) return;
+  const thr=(qmin+qmax)/2, hys=(qmax-qmin)/8; let r1=-1,f1=-1,r2=-1, high=square[0]>thr;
+  for (let i=1;i<SCOPE_N;i++){
+    if (!high && square[i]>thr+hys){ high=true; if(r1<0) r1=i; else if (f1>0 && r2<0){ r2=i; break; } }
+    else if (high && square[i]<thr-hys){ high=false; if (r1>0 && f1<0) f1=i; }
+  }
+  if (r1<0||f1<0||r2<0) return;
+  const period=r2-r1; if (period<8) return;
+  H.rpm=60*SPS/period;
+  let pi=r1,pv=-1; for (let i=r1;i<r2;i++){ const v=sine[i-1]+2*sine[i]+sine[i+1]; if(v>pv){pv=v;pi=i;} }
+  H.phase=clamp(50-(pi-(r1+f1)/2)*100/period,0,100);
+  let rough=0; for (let i=1;i<SCOPE_N-1;i++) rough+=Math.abs(sine[i-1]-2*sine[i]+sine[i+1]);
+  rough/=(SCOPE_N-2)*(smax-smin)*0.5;
+  const ns=Math.max(0,1-rough*8), ps=1-Math.abs(H.phase-50)/50;
+  H.h=100*(0.65*ns+0.35*ps); H.valid=true;
+}
+
+// ------------------------------------------------------------------ Signal Health history (12 h records, same as the SCM)
+const PERIOD=43200, HIST_MAX=120;
+function histTick(){
+  const idx=Math.floor(S.t/PERIOD); if (!S.per) S.per=newPer(idx);
+  const P=S.per; P.sweeps++; P.vpp+=S.health.vpp;
+  if (S.health.valid){ P.valid++; P.h+=S.health.h; P.rpm+=S.health.rpm; P.min=Math.min(P.min,S.health.h); P.rlo=Math.min(P.rlo,S.health.rpm); P.rhi=Math.max(P.rhi,S.health.rpm); }
+  P.secs++;
+  if (idx!==P.idx){ const rec=buildRec(P,(P.idx+1)*PERIOD); if (P.secs>=1800) pushRec(rec); S.per=newPer(idx); }
+}
+function newPer(idx){ return {idx,sweeps:0,valid:0,h:0,rpm:0,vpp:0,min:1000,rlo:1e9,rhi:-1,secs:0}; }
+function buildRec(P,tEnd){ const r={t:tEnd,min:Math.round(P.secs/60),vpp:P.sweeps?P.vpp/P.sweeps:0,sig:P.sweeps?Math.round(P.valid*100/P.sweeps):0};
+  if (!P.valid){ r.h=null; return r; } r.h=P.h/P.valid; r.hmin=Math.min(r.h,P.min); r.rpm=P.rpm/P.valid; r.span=Math.max(0,P.rhi-P.rlo); return r; }
+function currentPeriod(){ return S.per && S.per.sweeps ? buildRec(S.per,S.t) : null; }
+function pushRec(r){ S.hist.push(r); if (S.hist.length>HIST_MAX) S.hist.shift(); }
+function seedHistory(){
+  const now=Math.floor(S.t/PERIOD)*PERIOD;
+  for (let i=116;i>=1;i--){
+    const t=now-i*PERIOD, day=(116-i)/2;
+    let h=97.6-day*0.28+Math.sin(day*0.9)*0.4; if (day>28) h=97.2-(day-28)*0.06;
+    if (i===61||i===60) continue;
+    const dip=(i===40)?6:0;
+    S.hist.push({t,min:720,vpp:1.19+Math.random()*0.03,sig:100,h,hmin:h-1.4-Math.random()*1.2-dip,rpm:293.8+(Math.random()-0.5)*0.6,span:0.6+Math.random()*0.5});
+  }
+}
+// ------------------------------------------------------------------ calibration reminder + service access
+function calStatus(){ if (S.calInt===0) return {st:'off',d:0}; const due=S.calLast+S.calInt*86400;
+  return S.t<due ? {st:'ok',d:Math.ceil((due-S.t)/86400)} : {st:'due',d:Math.floor((S.t-due)/86400)}; }
+function unlocked(){ if (S.unlockedUntil && Date.now()>S.unlockedUntil){ S.unlockedUntil=0; S.svcStatus='Locked automatically after 5 minutes'; } return S.unlockedUntil>0; }
+function touchSvc(){ if (S.unlockedUntil) S.unlockedUntil=Date.now()+5*60*1000; }
+function lock(){ S.unlockedUntil=0; S.afterUnlock=null; }
+function tryUnlock(txt){
+  if (Date.now()<S.lockoutUntil){ S.svcStatus='Locked out - wait '+Math.ceil((S.lockoutUntil-Date.now())/1000)+' s'; return false; }
+  if (txt===S.pin){ S.unlockedUntil=Date.now()+5*60*1000; S.fails=0; S.svcStatus='Unlocked'; return true; }
+  S.fails++; if (S.fails>=5){ S.lockoutUntil=Date.now()+60000; S.fails=0; S.svcStatus='Too many attempts - wait 60 s'; } else S.svcStatus='Wrong PIN';
+  return false;
+}
+// PCA: the PIN also guards the calibration SETTINGS (cfg_field_guarded)
+const GUARDED = { calVmin:1, calVmax:1, ulStepCfg:1, calMl:1, ulDrop:1 };
+
+// ------------------------------------------------------------------ rendering: top bar
+let blink=false;
+const mctx=document.createElement('canvas').getContext('2d');
+function measure(txt,px,w){ mctx.font=(w||400)+' '+px+'px Montserrat, Arial'; return mctx.measureText(txt).width; }
+const TITLE={home:'Particle Charge Analyzer',titrate:'Titration',scope:'Signal Health',files:'File Utilities',config:'Configuration',pump:'Dosing Pump',service:'Service & Calibration'};
+function renderTop(){
+  $('clock').textContent=timeStr(S.t,true);
+  const cs=calStatus(), cd=$('caldue'), tt=$('scrTitle'), x=178+measure('PCA Model 247',20,500)+14;
+  tt.style.left=x+'px'; cd.style.left=x+'px';
+  if (cs.st==='due'){ tt.style.display='none'; cd.style.display='block'; cd.style.background=blink?'#F87171':'transparent'; cd.style.color=blink?'#0B0F14':'#F87171'; }
+  else { tt.style.display='block'; cd.style.display='none'; }
+  tt.textContent=TITLE[S.screen];
+}
+
+// ------------------------------------------------------------------ Home (ui_update_reading / ui_update_titration)
+function renderHome(){
+  const mode=$('hMode'); mode.textContent=S.showAbs?'ABSOLUTE':'RELATIVE'; mode.classList.toggle('rel',!S.showAbs);
+  const dg=$('hDigits'), chip=$('hChip'), st=$('hState');
+  const active = S.run && S.run.active;
+  if (S.fault){
+    dg.textContent='----'; dg.style.color='#F87171'; chip.textContent='SENSOR FAULT'; chip.style.background='#F87171';
+    $('hOther').textContent='';
+  } else {
+    const hero = S.showAbs ? S.raw : S.disp;
+    dg.textContent=fmtMv(hero,0);
+    const pol = hero>NEUTRAL ? ['#60A5FA','CATIONIC'] : hero<-NEUTRAL ? ['#F87171','ANIONIC'] : ['#22D3EE','NEUTRAL'];
+    dg.style.color=pol[0]; chip.style.background=pol[0]; chip.textContent=pol[1];
+    $('hOther').textContent=(S.showAbs?'Relative ':'Absolute ')+fmtMv(S.showAbs?S.disp:S.raw,0)+' mV';
+  }
+  $('hRaw').textContent = S.showRaw ? 'Raw: '+S.rawCounts : '';
+  const bt=$('bTitr');
+  if (active){ bt.textContent='Stop Titration'; bt.style.background='#F87171'; st.textContent='Titrating  '+mmss(S.t-S.run.startT); st.style.color='#FBBF24'; }
+  else {
+    bt.textContent='Start Titration'; bt.style.background='#4ADE80';
+    if (S.fault){ st.textContent='Check the sensor cable'; st.style.color='#F87171'; }
+    else if (S.haveRun && S.run){ const x=tm(S.run.lastT); st.textContent='Last test:  '+pad2(x.mo)+'-'+pad2(x.d)+' '+pad2(x.h)+':'+pad2(x.mi); st.style.color='#8B98A9'; }
+    else { st.textContent='Ready'; st.style.color='#8B98A9'; }
+  }
+  bt.classList.toggle('dis', S.fault); $('bZero').classList.toggle('dis', S.fault); $('bAuto').classList.toggle('dis', S.fault || pMissing());
+}
+
+// ------------------------------------------------------------------ Titrate (ui_titrate_chart_push / ui_autotitr_refresh)
+function niceStep(x){ if (x<=0) return 1; const e=Math.pow(10,Math.floor(Math.log10(x))), f=x/e; return (f<=1?1:f<=2?2:f<=5?5:10)*e; }
+function renderTitrate(){
+  const R=S.run, active=R&&R.active;
+  $('tCur').textContent = S.fault ? '----' : fmtMv(S.disp,1);
+  $('tEl').textContent = R ? mmss((active?S.t:R.lastT)-R.startT) : '--';
+  $('tVol').textContent = R ? R.titrant.toFixed(0) : '0';
+  $('tDoses').textContent = S.at.steps;
+  const ab=$('bAuto'), run=atRunning(); ab.textContent=run?'STOP':'Auto Titrate'; ab.style.background=run?'#F87171':'#22D3EE';
+  $('tMode').textContent=atModeName(atMode()); $('bMode').classList.toggle('dis', run);
+  const ts=$('tStat'); ts.textContent = (run && S.at.slope!==0) ? S.atStatus+'   (slope '+(S.at.slope*1000).toFixed(3)+' mV/mL)' : S.atStatus;
+  ts.style.color = S.at.state===AT.DONE ? '#4ADE80' : S.at.state===AT.ABORT ? '#FBBF24' : '#8B98A9';
+  // chart: 94 % x 92 % of the card, centred 8 px high; zero line under it
+  const card=$('tCard'), W=card.clientWidth-26, H=card.clientHeight-26;
+  const cw=Math.round(W*0.94), ch=Math.round(H*0.92), cx=13+Math.round((W-cw)/2), cy=13+Math.round((H-ch)/2)-8;
+  const c=$('tC'); if (c.width!==cw||c.height!==ch){ c.width=cw; c.height=ch; }
+  c.style.left=cx+'px'; c.style.top=cy+'px';
+  const z=$('tZero'); z.style.left=cx+'px'; z.style.width=cw+'px'; z.style.top=(cy+Math.round(ch/2)-1)+'px';
+  $('tYt').style.left='15px'; $('tYt').style.top='15px';
+  $('tY0').style.left='15px'; $('tY0').style.top=(cy+Math.round(ch/2)-13)+'px';
+  $('tYb').style.left='15px'; $('tYb').style.bottom='31px';
+  $('tXe').style.right='15px'; $('tXe').style.bottom='31px';
+  const g=c.getContext('2d'); g.clearRect(0,0,cw,ch); g.strokeStyle='#3A4656'; g.lineWidth=1;
+  for (let i=0;i<3;i++){ const y=Math.round((ch-1)*i/2)+0.5; g.beginPath(); g.moveTo(0,y); g.lineTo(cw,y); g.stroke(); }
+  for (let i=0;i<6;i++){ const x=Math.round((cw-1)*i/5)+0.5; g.beginPath(); g.moveTo(x,0); g.lineTo(x,ch); g.stroke(); }
+  if (!R || (R.count<=0 && !active)){ $('tEmpty').style.display='block'; $('tYt').textContent='+100'; $('tYb').textContent='-100'; $('tXe').textContent=''; return; }
+  $('tEmpty').style.display='none';
+  let half = active ? Math.abs(S.disp) : R.vals.reduce((m,v)=>Math.max(m,Math.abs(v)),0);
+  if (half<20) half=20; half*=1.15; const step=niceStep(half/3); half=Math.ceil(half/step)*step;
+  $('tYt').textContent='+'+half.toFixed(0); $('tYb').textContent='-'+half.toFixed(0);
+  const n=Math.min(R.count,TITR_MAX); $('tXe').textContent=(n>1?n-1:0)+'s';
+  if (n<=0) return;
+  // endpoint band, +-S.band around zero (0.9.38)
+  { const px=Math.min(ch,Math.max(4,Math.round(S.band/half*ch))); g.fillStyle='rgba(74,222,128,0.20)'; g.fillRect(0,Math.round(ch/2-px/2),cw,px); }
+  // live end: one extra point, the reading now (0.9.38)
+  const live = active && n<TITR_MAX && !S.fault, V = live ? R.vals.slice(0,n).concat([S.disp]) : R.vals, m = live ? n+1 : n;
+  const P=300, pts=new Array(P);
+  for (let j=0;j<P;j++){ if (m===1){ pts[j]=V[0]; continue; } const pos=j*(m-1)/(P-1), i=Math.floor(pos); pts[j] = i>=m-1 ? V[m-1] : V[i]+(pos-i)*(V[i+1]-V[i]); }
+  g.strokeStyle='#FBBF24'; g.lineWidth=3; g.lineJoin='round'; g.beginPath();
+  for (let j=0;j<P;j++){ const x=(cw-1)*j/(P-1), y=(ch-1)*(0.5-clamp(pts[j],-half,half)/(2*half)); j?g.lineTo(x,y):g.moveTo(x,y); }
+  g.stroke();
+}
+
+// ------------------------------------------------------------------ Scope + history popup (as the SCM)
+function renderScope(){
+  const H=S.health;
+  $('scVpp').textContent=H.vpp.toFixed(2)+' V';
+  const hv=$('scHealth'); if (H.valid){ hv.textContent=Math.round(H.h)+' %'; hv.style.color=H.h>=85?'#4ADE80':H.h>=60?'#FBBF24':'#F87171'; } else { hv.textContent='--'; hv.style.color='#8B98A9'; }
+  $('scRpm').textContent=H.valid?Math.round(H.rpm):'--';
+  $('nosig').style.display=H.valid?'none':'block';
+  const c=$('scC'), card=c.parentElement, W=card.clientWidth-24, Hh=card.clientHeight-24, cw=Math.round(W*0.96), ch=Math.round(Hh*0.88);
+  if (c.width!==cw||c.height!==ch){ c.width=cw; c.height=ch; }
+  c.style.left=(Math.round((W-cw)/2)+12)+'px'; c.style.top='12px';
+  const g=c.getContext('2d'); g.clearRect(0,0,cw,ch); g.strokeStyle='#3A4656'; g.lineWidth=1;
+  for (let i=0;i<3;i++){ const y=Math.round((ch-1)*i/2)+0.5; g.beginPath(); g.moveTo(0,y); g.lineTo(cw,y); g.stroke(); }
+  for (let i=0;i<8;i++){ const x=Math.round((cw-1)*i/7)+0.5; g.beginPath(); g.moveTo(x,0); g.lineTo(x,ch); g.stroke(); }
+  const N=200; let s1=new Array(N), s2=new Array(N), m1=0, m2=0; for (let i=0;i<SCOPE_N;i++){ m1+=sine[i]; m2+=square[i]; } m1/=SCOPE_N; m2/=SCOPE_N;
+  let amp=FS/32; for (let i=0;i<N;i++){ const idx=Math.floor(i*SCOPE_N/N); s1[i]=sine[idx]-m1; s2[i]=square[idx]-m2; amp=Math.max(amp,Math.abs(s1[i]),Math.abs(s2[i])); }
+  amp+=amp/8; if (!H.valid) amp=FS/2;
+  const Y=v=>(ch-1)*(0.5-v/(2*amp)), X=i=>(cw-1)*i/(N-1);
+  function line(a,col){ g.strokeStyle=col; g.lineWidth=2; g.beginPath(); for (let i=0;i<N;i++){ i?g.lineTo(X(i),Y(a[i])):g.moveTo(X(i),Y(a[i])); } g.stroke(); }
+  line(s2,'#FBBF24'); line(s1,'#33B5E5');
+}
+let hiDays=7;
+function renderHist(){
+  document.querySelectorAll('#hist .hh .btn[data-d]').forEach(b=>b.classList.toggle('on',+b.dataset.d===hiDays));
+  const slots=hiDays*2, npts=slots+1, pNow=Math.floor(S.t/PERIOD), p0=pNow-slots;
+  const avg=new Array(npts).fill(null), mn=new Array(npts).fill(null); let low=1000, plotted=0;
+  const all=S.hist.slice(); const c=currentPeriod(); if (c) all.push(Object.assign({cur:true},c));
+  for (const r of all){ if (r.h==null) continue; const p=r.cur?pNow:Math.floor((r.t-1)/PERIOD), s=p-p0; if (s<0||s>=npts) continue; avg[s]=r.h; mn[s]=r.hmin; low=Math.min(low,r.hmin); plotted++; }
+  let lo=80; while (lo>0 && low<lo) lo-=20;
+  for (let i=0;i<5;i++) $('hy'+i).textContent=Math.round(100-i*(100-lo)/4);
+  const g=$('hiC').getContext('2d'), cw=704, ch=216, pv=12; g.clearRect(0,0,cw,ch); g.strokeStyle='#3A4656'; g.lineWidth=1;
+  for (let i=0;i<5;i++){ const y=pv+Math.round((ch-2*pv-1)*i/4)+0.5; g.beginPath(); g.moveTo(8,y); g.lineTo(cw-8,y); g.stroke(); }
+  const vd=hiDays===7?8:7; for (let i=0;i<vd;i++){ const x=8+Math.round((cw-17)*i/(vd-1))+0.5; g.beginPath(); g.moveTo(x,pv); g.lineTo(x,ch-pv); g.stroke(); }
+  const X=i=>8+(cw-17)*i/(npts-1), Y=v=>pv+(ch-2*pv-1)*(1-(v-lo)/(100-lo)), dot=hiDays===7?5:3;
+  function ser(a,col){ g.strokeStyle=col; g.fillStyle=col; g.lineWidth=3; g.beginPath(); let up=true; for (let i=0;i<npts;i++){ if (a[i]==null){ up=true; continue; } const x=X(i), y=Y(a[i]); up?g.moveTo(x,y):g.lineTo(x,y); up=false; } g.stroke(); for (let i=0;i<npts;i++){ if (a[i]==null) continue; g.beginPath(); g.arc(X(i),Y(a[i]),dot,0,6.283); g.fill(); } }
+  ser(mn,'#8B98A9'); ser(avg,'#22D3EE');
+  const t0=p0*PERIOD; $('hx0').textContent=MON[tm(t0).mo-1]+' '+pad2(tm(t0).d); const tmid=t0+hiDays*PERIOD; $('hx1').textContent=MON[tm(tmid).mo-1]+' '+pad2(tm(tmid).d);
+  const em=$('hiEmpty'); if (!plotted){ em.textContent='No readable signal yet'; em.style.display='block'; } else em.style.display='none';
+  $('hiLeg').innerHTML='<span style="color:#22D3EE">&#9632;</span> 12 h average &nbsp;&nbsp;&nbsp; <span style="color:#8B98A9">&#9632;</span> lowest 1-min average &nbsp;&nbsp;&nbsp; '+S.hist.length+' / 120 periods stored';
+  let s; if (!c) s='This period: no data yet. A point is added every 12 hours (00:00 and 12:00).';
+  else if (c.h==null) s='This period ('+(c.min/60).toFixed(1)+' h): no readable sensor signal  |  sine '+c.vpp.toFixed(2)+' V';
+  else s='This period ('+(c.min/60).toFixed(1)+' h): avg '+c.h.toFixed(1)+' %, low '+c.hmin.toFixed(1)+' %  |  signal '+c.sig+' %  |  '+c.rpm.toFixed(1)+' RPM (spread '+Math.min(25.5,c.span).toFixed(1)+')  |  sine '+c.vpp.toFixed(2)+' V';
+  if (!S.histMsgHold) $('hiSum').textContent=s;
+}
+
+// ------------------------------------------------------------------ configuration file (CFG_KEYS in the .ino, 0.9.24)
+// [file key, state field, lo, hi, decimals | 'b']
+const CFG_KEYS = [
+  ['gain','gain',0.10,10,3], ['avg_samples','avg',1,1000,0], ['main_readout_absolute','showAbs',0,1,'b'],
+  ['at_open_drops','openDrops',1,100,0], ['at_max_ml','maxMl',0.1,500,3], ['at_band_mv','band',0.5,100,3],
+  ['at_approach','approach',0.10,1,3], ['at_settle_s','settle',1,600,0], ['at_max_dose_drops','maxDrops',1,100,0],
+  ['pump_steps_per_s','sps',20,PUMP_MAX_SPS,0], ['pump_dose_steps','doseSteps',1,1000000,0],
+  ['prime_steps_per_s','primeSps',20,PUMP_MAX_SPS,0], ['prime_auto_stop_s','primeTo',0,7200,0], ['cal_run_steps_per_s','calSps',20,PUMP_MAX_SPS,0],
+  ['brightness_pct','bright',10,100,0], ['cal_reminder_days','calInt',0,730,0],
+];
+// This unit's calibration: written for the record, never read back.
+const CAL_KEYS = [['zero_offset_mv','zero',3],['input_volts_at_4ma','calVmin',3],['input_volts_at_20ma','calVmax',3],['pump_ul_per_step','ulStep',5],['pump_ul_per_drop','ulDrop',3],['pump_power_sense','pPowerSense','b']];
+const CFG_FILE = 'PCA_Config.txt';
+function cfgFmt(v,p){ return p==='b' ? (v?1:0) : p ? (+v).toFixed(p) : Math.round(v); }
+function cfgExport(){
+  if (!S.usbIn){ S.cfgIo='No USB drive detected'; return; }
+  const rows=['# MicroMetrix PCA Model 247 configuration','# GigaView firmware '+FW+', exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
+  CFG_KEYS.forEach(k=>rows.push(k[0]+' = '+cfgFmt(S[k[1]],k[4])));
+  rows.push('','# Calibration of the unit this file came from. For the record only:','# these lines are NOT read back by Import.');
+  CAL_KEYS.forEach(k=>rows.push(k[0]+' = '+cfgFmt(S[k[1]],k[2])));
+  S.usb[CFG_FILE]=rows.join('\r\n')+'\r\n';
+  S.cfgIo='Saved '+CFG_FILE+' ('+(CFG_KEYS.length+CAL_KEYS.length)+' settings). Safe to remove the stick.';
+  renderFileLists({where:'usb',name:CFG_FILE});
+}
+function cfgImport(){
+  if ((S.run && S.run.active) || atRunning() || S.pRun){ S.cfgIo='Not during a titration or while the pump runs'; return; }
+  if (!S.usbIn){ S.cfgIo='No USB drive detected'; return; }
+  const text=S.usb[CFG_FILE]; if (!text){ S.cfgIo=CFG_FILE+' not found on the stick'; return; }
+  let ok=0, skip=0;
+  text.split(/\r?\n/).forEach(line=>{ const t=line.trim(); if (!t || t[0]==='#') return;
+    const m=/^(\w+)\s*=\s*(-?[\d.]+)/.exec(t); if (!m){ skip++; return; }
+    if (CAL_KEYS.some(k=>k[0]===m[1])) return;
+    const k=CFG_KEYS.find(k=>k[0]===m[1]), v=+m[2];
+    if (!k || isNaN(v) || v<k[2] || v>k[3]){ skip++; return; }
+    S[k[1]] = k[4]==='b' ? v!==0 : (k[4]===0 ? Math.round(v) : v); ok++; });
+  applyBright();
+  S.cfgIo='Imported '+ok+' settings'+(skip?', '+skip+' lines skipped':'');
+}
+
+// ------------------------------------------------------------------ Files (ui_files_refresh): a menu, the runs page behind Back
+function buildFilesMenu(){
+  const m=$('fiMenu'); m.innerHTML='';
+  [['list','Titration runs',()=>{ S.fiRuns=true; renderFiles(); }],
+   ['upload','Export configuration',()=>{ cfgExport(); renderFiles(); }],
+   ['download','Import configuration',()=>confirmBox('Import configuration?','Reads '+CFG_FILE+' from the USB stick and replaces the settings on this unit. Calibration, zero, uL per step, uL per drop and the service PIN are not changed.',cfgImport)]
+  ].forEach(it=>{ const r=document.createElement('div'); r.className='mrow';
+    r.innerHTML='<svg viewBox="0 0 24 24"><path d="'+ICONS[it[0]]+'"/></svg><span></span><span class="ar">&#8250;</span>';
+    r.querySelector('span').textContent=it[1]; r.onclick=it[2]; m.appendChild(r); });
+  const st=document.createElement('div'); st.className='st'; st.id='fiCfgSt'; m.appendChild(st);
+}
+function renderFiles(){
+  $('fiMenu').style.display=S.fiRuns?'none':'flex'; $('fiStrip').style.display=S.fiRuns?'flex':'none'; $('fiPage').style.display=S.fiRuns?'flex':'none';
+  $('fiCfgSt').textContent=S.cfgIo;
+  const R=S.run;
+  if (S.haveRun && R){ $('fiStart').textContent=dateStr(R.startT)+'  '+timeStr(R.startT,true); $('fiDur').textContent=Math.floor(R.lastT-R.startT)+' s'; $('bExp').style.background='#4ADE80'; }
+  else { $('fiStart').textContent='-'; $('fiDur').textContent='-'; $('bExp').style.background='#3A4656'; }
+  const ff=$('fiFile'); if (S.lastName){ ff.textContent=S.lastName; ff.style.color='#4ADE80'; } else { ff.textContent='not yet'; ff.style.color='#8B98A9'; }
+  const n=runNames().length, used=storeUsedKb(), fs=$('fiStore');
+  if (S.saveFailed){ fs.textContent='last save FAILED'; fs.style.color='#F87171'; }
+  else { fs.textContent=n+' run'+(n===1?'':'s')+', '+(used>=1024?(used/1024).toFixed(1)+' MB':Math.round(used)+' KB')+' of 7 MB'; fs.style.color='#E6EDF3'; }
+  $('bExpAll').style.background = n>0 ? '#A78BFA' : '#3A4656';
+  const fu=$('fiUsb'); fu.textContent=S.usbIn?'USB: drive ready':'USB: no drive'; fu.style.color=S.usbIn?'#4ADE80':'#8B98A9';
+  $('fiStatus').textContent = S.titrStatus || (S.haveRun?'':'Every run is saved on the unit when it ends. Export copies it to a stick.');
+  $('fiStatus').style.color = S.exp ? '#22D3EE' : '';
+  $('fiBar').style.display = S.exp ? 'block' : 'none';
+  if (S.exp) $('fiBarIn').style.width = Math.min(100, Math.round(S.exp.bd*100/S.exp.bt))+'%';
+}
+
+// ------------------------------------------------------------------ Pump page (ui_pump_refresh)
+function renderPump(){
+  const st=$('puState');
+  if (S.pRun){ st.textContent = S.pCont ? (S.pDir>0?'PRIMING':'REVERSE') : 'DOSING'; st.style.color = S.pDir>0?'#4ADE80':'#FBBF24'; }
+  else if (pMissing()){ st.textContent='NO POWER'; st.style.color='#F87171'; }
+  else { st.textContent='Idle'; st.style.color='#8B98A9'; }
+  $('puSteps').textContent = S.pTotal + (S.pRun?S.pFlight:0);
+  $('puVol').textContent = (S.pTotal*S.ulStep).toFixed(0);
+  $('puDoses').textContent = S.pDoses;
+  $('puDose').textContent = (S.doseSteps*S.ulStep).toFixed(1);
+  $('puFlow').textContent = flowUlMin(S.sps).toFixed(0);
+  $('puCal').textContent = S.ulStep.toFixed(4);
+  $('puDrop').textContent = S.ulDrop.toFixed(1);
+  $('puPFlow').textContent = flowUlMin(S.primeSps).toFixed(0);
+  $('puCFlow').textContent = flowUlMin(S.calSps).toFixed(0);
+  $('puPTo').textContent = S.primeTo ? S.primeTo : 'Never';
+  $('pPrime').textContent = S.pRun ? 'Stop' : 'Prime';      // stops whatever runs, so it says so
+  // idle: the message and the one figure shown nowhere else on the page
+  const noPower = !S.pRun && pMissing(), ps=$('puStatus');
+  ps.textContent = noPower ? 'No pump power - check the motor supply. Nothing can be dispensed.'
+    : S.pRun ? S.pStatus : S.pStatus+'  |  1 drop = '+Math.max(1,Math.round(S.ulDrop/S.ulStep))+' steps';
+  ps.style.color = noPower ? '#F87171' : '';
+}
+
+// ------------------------------------------------------------------ Service (ui_service_refresh)
+function renderService(){
+  const cs=calStatus(), st=$('svState');
+  if (cs.st==='off'){ st.textContent='Reminder off'; st.style.color='#8B98A9'; }
+  else if (cs.st==='ok'){ st.textContent='OK - due in '+cs.d+' day'+(cs.d===1?'':'s'); st.style.color='#4ADE80'; }
+  else { st.textContent=cs.d===0?'DUE today':'OVERDUE '+cs.d+' day'+(cs.d===1?'':'s'); st.style.color='#F87171'; }
+  $('svLast').textContent=dateStr(S.calLast);
+  $('svInt').textContent=(S.calInt===0?'Off':S.calInt+' days  (next '+dateStr(S.calLast+S.calInt*86400)+')')+'  \u203A';
+  const un=unlocked();
+  document.querySelectorAll('#service .btn.g').forEach(b=>b.classList.toggle('dis',!un));
+  const ub=$('svUnlock'); ub.innerHTML=un?'&#10005;&nbsp; Lock':'&#9673;&nbsp; Unlock'; ub.style.background=un?'#1B2635':'#22D3EE'; ub.style.color=un?'#E6EDF3':'#0B0F14';
+  let m; if (un){ const r=Math.max(0,Math.round((S.unlockedUntil-Date.now())/1000)); m='Unlocked - locks in '+Math.floor(r/60)+':'+pad2(r%60)+(S.svcStatus?'   |   '+S.svcStatus:''); }
+  else if (S.svcStatus) m=S.svcStatus;
+  else if (cs.st==='due') m='Calibration is due. Contact your service provider. The instrument keeps working normally.';
+  else m='Locked. The service PIN is needed to make changes.';
+  $('svMsg').textContent=m;
+}
+
+// ------------------------------------------------------------------ Config: a menu of groups, each a scrolling list with Back
+// CFG_GROUPS (0.9.22, the SCM's 0.9.34 layout): a menu of groups, each a scrolling list with Back
+const ICONS={
+  eye:'M12 5C6.5 5 2.6 9.1 1 12c1.6 2.9 5.5 7 11 7s9.4-4.1 11-7c-1.6-2.9-5.5-7-11-7zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9zm0-7a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z',
+  bolt:'M13 2 4 14h6l-1 8 9-12h-6z',
+  drop:'M12 2s-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z',
+  display:'M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H7v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v9h16V6z',
+  list:'M4 6h2v2H4zm4 0h12v2H8zM4 11h2v2H4zm4 0h12v2H8zM4 16h2v2H4zm4 0h12v2H8z',
+  upload:'M5 20h14v-2H5zM12 3l-6 6h4v6h4V9h4z',
+  download:'M5 20h14v-2H5zM12 16l6-6h-4V4h-4v6H6z',
+  gear:'M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.5 7.5 0 0 0-1.7-1L15 3.3H9l-.4 2.6a7.5 7.5 0 0 0-1.7 1l-2.5-1-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.5 7.5 0 0 0 1.7 1l.4 2.6h6l.4-2.6a7.5 7.5 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z'
+};
+const GROUPS=[
+  {name:'Sensor', icon:'eye', rows:[{n:'Sensitivity (gain)',f:'gain'},{n:'Averaging (samples)',f:'avg'},{n:'Input @ 4 mA  (-1000 mV)',f:'calVmin'},{n:'Input @ 20 mA (+1000 mV)',f:'calVmax'},{n:'Raw ADC readout (diag)',t:'raw'}]},
+  {name:'Titrate', icon:'bolt', rows:[{n:'Mode',t:'atmode'},{n:'Opening dose',f:'openDrops'},{n:'Max titrant',f:'maxMl'},{n:'Endpoint band',f:'band'},{n:'Approach factor',f:'approach'},{n:'Largest dose',f:'maxDrops'},{n:'Settle time',f:'settle'}]},
+  {name:'Pump', icon:'drop', rows:[{n:'Pump controls',t:'pump'},{n:'Power sense (D5)',t:'psense'}]},
+  {name:'Display & clock', icon:'display', rows:[{n:'Main readout',t:'mode'},{n:'Brightness',t:'bright'},{n:'Date',f:'date'},{n:'Time',f:'time'}]},
+  {name:'Service', icon:'gear', screen:'service', rows:[]},
+];
+function dirty(){ if (S.run && S.run.active) S.run.dirty=true; }
+const FIELD={
+  gain:{title:'Sensitivity (gain)',hint:'0.10 - 10.0',pre:()=>S.gain.toFixed(2),get:()=>'x '+S.gain.toFixed(2),set:v=>{S.gain=clamp(v,0.1,10);dirty();}},
+  avg:{title:'Averaging (samples)',hint:'1 - 1000',pre:()=>S.avg,get:()=>S.avg,set:v=>{S.avg=clamp(Math.round(v),1,1000);dirty();}},
+  calVmin:{title:'Input @ 4 mA  (-1000 mV)',hint:'volts at the A0 pin (0 - 3.3)',pre:()=>S.calVmin.toFixed(3),get:()=>S.calVmin.toFixed(3)+' V',set:v=>{S.calVmin=clamp(v,0,3.3);dirty();},live:()=>'Live: '+(S.calVmin+(S.inst+1000)/2000*(S.calVmax-S.calVmin)).toFixed(3)+' V'},
+  calVmax:{title:'Input @ 20 mA  (+1000 mV)',hint:'volts at the A0 pin (0 - 3.3)',pre:()=>S.calVmax.toFixed(3),get:()=>S.calVmax.toFixed(3)+' V',set:v=>{S.calVmax=clamp(v,0,3.3);dirty();},live:()=>'Live: '+(S.calVmin+(S.inst+1000)/2000*(S.calVmax-S.calVmin)).toFixed(3)+' V'},
+  openDrops:{title:'Opening dose',hint:'drops in the first dose, 1 - 100',pre:()=>S.openDrops,get:()=>S.openDrops+' drops',set:v=>{S.openDrops=clamp(Math.round(v),1,100);dirty();}},
+  maxMl:{title:'Max titrant',hint:'mL the titrator may add in one run, 0.1 - 500',pre:()=>S.maxMl.toFixed(1),get:()=>S.maxMl.toFixed(1)+' mL',set:v=>{S.maxMl=clamp(v,0.1,500);dirty();}},
+  band:{title:'Endpoint band',hint:'mV either side of zero that counts as the endpoint, 0.5 - 100',pre:()=>S.band.toFixed(1),get:()=>S.band.toFixed(1)+' mV',set:v=>{S.band=clamp(v,0.5,100);dirty();}},
+  approach:{title:'Approach factor',hint:'% of the predicted remaining volume per dose, 10 - 100',pre:()=>Math.round(S.approach*100),get:()=>Math.round(S.approach*100)+' %',set:v=>{S.approach=clamp(Math.round(v),10,100)/100;dirty();}},
+  maxDrops:{title:'Largest dose',hint:'drops - the most one dose may add, 1 - 100',pre:()=>S.maxDrops,get:()=>S.maxDrops+' drops',set:v=>{S.maxDrops=clamp(Math.round(v),1,100);dirty();}},
+  settle:{title:'Settle time',hint:'seconds to wait after each dose, 1 - 600',pre:()=>S.settle,get:()=>S.settle+' s',set:v=>{S.settle=clamp(Math.round(v),1,600);dirty();}},
+  primeFlow:{title:'Prime flow rate',hint:()=>'uL/min for Prime and Reverse - up to '+flowUlMin(PUMP_MAX_SPS).toFixed(0),pre:()=>flowUlMin(S.primeSps).toFixed(0),get:()=>flowUlMin(S.primeSps).toFixed(0)+' uL/min',set:v=>{const r=rateSps(v), m=S.pStatus; S.primeSps=r; rateChanged(); if (m.startsWith('Capped')||m.startsWith('Raised')) S.pStatus=m;}},
+  calFlow:{title:'Cal Run flow rate',hint:()=>'uL/min for Cal Run - up to '+flowUlMin(PUMP_MAX_SPS).toFixed(0),pre:()=>flowUlMin(S.calSps).toFixed(0),get:()=>flowUlMin(S.calSps).toFixed(0)+' uL/min',set:v=>{const r=rateSps(v), m=S.pStatus; S.calSps=r; rateChanged(); if (m.startsWith('Capped')||m.startsWith('Raised')) S.pStatus=m;}},
+  primeTo:{title:'Prime auto-stop',hint:'seconds before a prime stops itself - 0 = never',pre:()=>S.primeTo,get:()=>S.primeTo?S.primeTo+' s':'Never',set:v=>{S.primeTo=clamp(Math.round(v),0,3600);}},
+  ulStepCfg:{title:'uL per motor step',hint:'type it directly if you already know it',pre:()=>S.ulStep.toFixed(4),get:()=>S.ulStep.toFixed(4),set:v=>{ if (v>0&&v<=1000){ S.ulStep=v; S.pStatus='Set '+v.toFixed(4)+' uL/step'; } else S.pStatus='uL/step must be 0 - 1000'; }},
+  doseUl:{title:'Dose size',hint:'microlitres delivered by the Dose button',pre:()=>(S.doseSteps*S.ulStep).toFixed(1),set:v=>{S.doseSteps=clamp(Math.round(v/S.ulStep),1,1000000);}},
+  flow:{title:'Dosing rate',hint:()=>'uL/min for 1 Drop and Dose, up to '+flowUlMin(PUMP_MAX_SPS).toFixed(0)+'. Prime has its own Flow',pre:()=>flowUlMin(S.sps).toFixed(0),set:v=>{const r=rateSps(v), m=S.pStatus; S.sps=r; rateChanged(); if (m.startsWith('Capped')||m.startsWith('Raised')) S.pStatus=m;}},
+  ulDrop:{title:'uL per drop',hint:'1 - 200. A 0.6 mm tip is ~12 uL, 2 mm ~40 uL',pre:()=>S.ulDrop.toFixed(1),set:v=>{S.ulDrop=clamp(v,1,200);}},
+  calMl:{title:()=>S.pRun?'Cal - pump is still running':S.pTotal===0?'Cal - no steps counted yet':'Calibrate: enter mL collected',
+         hint:()=>S.pRun?'Wait for the run to finish first':S.pTotal===0?'Press Reset, then Cal Run, THEN come back here':'Divides by the '+S.pTotal+' steps run since Reset',pre:()=>'',
+         set:v=>{ if (S.pRun) S.pStatus='Wait for the run to finish, then enter mL'; else if (S.pTotal===0) S.pStatus='No steps counted - press Reset, then Cal Run, THEN enter mL';
+                  else if (v<=0) S.pStatus='Enter the mL you collected';
+                  else { const was=S.ulStep; S.ulStep=v*1000/S.pTotal; S.pStatus='Cal: '+was.toFixed(4)+' -> '+S.ulStep.toFixed(4)+' uL/step  ('+v.toFixed(2)+' mL / '+S.pTotal+' steps)'; } }},
+  date:{title:'Set date',hint:'Format: YYYYMMDD (e.g. 20260725)',pre:()=>dateStr(S.t).replace(/-/g,''),get:()=>dateStr(S.t),set:v=>{ const s=String(Math.round(v)); if (s.length!==8) return; const x=tm(S.t); const d=new Date(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8),x.h,x.mi,x.s); if (!isNaN(d)) S.t=Math.floor(d.getTime()/1000)+(S.t%1); }},
+  time:{title:'Set time',hint:'Format: HHMM (24-hour, e.g. 1435)',pre:()=>timeStr(S.t).replace(':',''),get:()=>timeStr(S.t,true),set:v=>{ const n=Math.round(v); if (n<0||n>2359||n%100>59) return; const x=tm(S.t); S.t=Math.floor(new Date(x.y,x.mo-1,x.d,Math.floor(n/100),n%100,0).getTime()/1000); }},
+  pin:{title:'Service PIN',hint:'Enter the service PIN to unlock',mask:true,pre:()=>''},
+  newpin:{title:'New service PIN',hint:'4 to 6 digits',mask:true,pre:()=>''},
+  calInt:{title:'Calibration interval',hint:'days (90 = 3 months, 180 = 6 months, 0 = off)',pre:()=>S.calInt,set:v=>{S.calInt=clamp(Math.round(v),0,730); S.svcStatus=S.calInt?'Interval set to '+S.calInt+' days':'Reminder turned off'; serviceLog('interval changed');}},
+};
+function buildMenu(){
+  const m=$('cfgMenu'); m.innerHTML='';
+  GROUPS.forEach((G,i)=>{
+    const r=document.createElement('div'); r.className='mrow';
+    r.innerHTML='<svg viewBox="0 0 24 24"><path d="'+ICONS[G.icon]+'"/></svg><span></span><span class="ar">&#8250;</span>';
+    r.querySelector('span').textContent=G.name;
+    r.onclick=()=>{ if (G.screen){ show(G.screen); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
+    m.appendChild(r);
+  });
+  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v'+FW+'</span>'; m.appendChild(fw);
+}
+function renderConfig(){
+  const home = S.cfgGroup<0;
+  $('cfgMenu').style.display=home?'flex':'none'; $('cfgStrip').style.display=home?'none':'flex'; $('rows').style.display=home?'none':'flex';
+  if (home) return;
+  const G=GROUPS[S.cfgGroup]; $('cfgTitle').textContent=G.name;
+  const box=$('rows'); const keep=box.scrollTop; box.innerHTML='';
+  G.rows.forEach(r=>{
+    const d=document.createElement('div'); d.className='crow2';
+    const n=document.createElement('span'); n.className='n'; n.textContent=r.n; d.appendChild(n);
+    const v=document.createElement('span'); v.className='v';
+    if (r.f){ v.textContent=FIELD[r.f].get(); d.onclick=()=>rowTap(r.f); }
+    else switch(r.t){
+      case 'mode': v.textContent=S.showAbs?'Absolute':'Relative'; d.onclick=()=>{S.showAbs=!S.showAbs;renderConfig();}; break;
+      case 'raw': v.textContent=S.showRaw?'On':'Off'; v.style.color=S.showRaw?'#22D3EE':'#8B98A9'; d.onclick=()=>{S.showRaw=!S.showRaw;renderConfig();}; break;
+      case 'bright': { d.classList.add('ro'); const w=document.createElement('span'); w.className='slider'; const inp=document.createElement('input'); inp.type='range'; inp.min=10; inp.max=100; inp.value=S.bright; inp.id='brightSl'; inp.setAttribute('aria-label','Screen brightness');
+        const lab=document.createElement('span'); lab.className='v'; lab.textContent=S.bright+' %'; inp.oninput=()=>{S.bright=+inp.value; lab.textContent=S.bright+' %'; applyBright();};
+        w.appendChild(inp); w.appendChild(lab); d.appendChild(w); box.appendChild(d); return; }
+      case 'pump': v.innerHTML='&#8250;'; d.onclick=()=>show('pump'); break;
+      case 'atmode': v.textContent=atModeName(atMode()); d.onclick=()=>{ atModeNext(); renderConfig(); }; break;
+      case 'psense': v.textContent=!S.pPowerSense?'Off':S.pPowerOk?'On - powered':'On - NO POWER'; v.style.color=!S.pPowerSense?'#8B98A9':S.pPowerOk?'#4ADE80':'#F87171';
+        d.onclick=()=>{ S.pPowerSense=!S.pPowerSense; S.pPowerOk=!S.pPowerSense||S.pPower; renderAll(); }; break;
+    }
+    d.appendChild(v); box.appendChild(d);
+  });
+  box.scrollTop=keep;
+}
+// cfg_row_cb(): a guarded row while locked asks for the PIN, then opens itself
+function rowTap(f){
+  if (GUARDED[f] && !unlocked()){ S.afterUnlock=f; openEditor('pin','Calibration is locked - enter the service PIN'); return; }
+  if (GUARDED[f]) touchSvc();
+  openEditor(f);
+}
+function applyBright(){ dev.style.filter='brightness('+(0.35+0.65*S.bright/100)+')'; }
+
+// ------------------------------------------------------------------ keypad (lv_buttonmatrix, side by side in landscape)
+let edField=null, edText='';
+const KEYS=['7','8','9','⌫','4','5','6','Clear','1','2','3','+/-','0','.','Cancel','Enter'];
+function buildKb(){ const kb=$('kb'); kb.innerHTML=''; KEYS.forEach(k=>{ const d=document.createElement('div'); d.className='k'+(k.length>2?' sm':''); d.textContent=k; d.onclick=()=>key(k); kb.appendChild(d); }); }
+function openEditor(f, hintOverride){
+  const F=FIELD[f]; edField=f; edText=String(F.pre?F.pre():'');
+  $('edT').textContent=typeof F.title==='function'?F.title():F.title;
+  $('edH').textContent=hintOverride||(typeof F.hint==='function'?F.hint():F.hint);
+  renderEd(); $('editor').classList.add('on');
+}
+function renderEd(){ const F=FIELD[edField]; if (!F) return; $('edV').textContent=F.mask?'•'.repeat(edText.length):edText; $('edL').textContent=F.live?F.live():''; }
+function key(k){
+  if (k==='Enter'){ applyEdit(); return; }
+  if (k==='Cancel'){ closeEd(); S.afterUnlock=null; return; }
+  if (k==='Clear') edText=''; else if (k==='⌫') edText=edText.slice(0,-1);
+  else if (k==='+/-') edText=edText.startsWith('-')?edText.slice(1):'-'+edText;
+  else if (edText.length<10) edText+=k;
+  renderEd();
+}
+function closeEd(){ $('editor').classList.remove('on'); edField=null; }
+function applyEdit(){
+  const f=edField; closeEd();
+  if (f==='pin'){ const ok=tryUnlock(edText); if (ok && S.afterUnlock){ const next=S.afterUnlock; S.afterUnlock=null; openEditor(next); } else S.afterUnlock=null; renderAll(); return; }
+  if (f==='newpin'){ if (/^\d{4,6}$/.test(edText)){ S.pin=edText; S.svcStatus='PIN changed'; serviceLog('PIN changed'); } else S.svcStatus='PIN must be 4 to 6 digits'; touchSvc(); renderAll(); return; }
+  const v=parseFloat(edText); if (isNaN(v)) return;
+  if (FIELD[f].set) FIELD[f].set(v);
+  if (GUARDED[f]) touchSvc();
+  renderAll();
+}
+
+// ------------------------------------------------------------------ confirm dialog
+let cfAction=null;
+function confirmBox(q,s,fn){ $('cfQ').textContent=q; $('cfS').textContent=s; cfAction=fn; $('confirm').classList.add('on'); }
+$('cfNo').onclick=()=>{ $('confirm').classList.remove('on'); cfAction=null; };
+$('cfYes').onclick=()=>{ $('confirm').classList.remove('on'); const a=cfAction; cfAction=null; if (a) a(); renderAll(); };
+
+// ------------------------------------------------------------------ navigation (ui_show) + controls
+const RAIL={home:'home',titrate:'titrate',scope:'scope',files:'files',config:'config',pump:'config',service:'config'};
+function show(s){
+  $('hist').classList.remove('on');
+  // the service area is Service + Config + Pump; anywhere else locks it
+  if (!['service','config','pump'].includes(s) && unlocked()) lock();
+  if (s==='config' && S.screen!=='config') S.cfgGroup=-1;
+  if (s==='files' && S.screen!=='files') S.fiRuns=false;
+  S.screen=s;
+  document.querySelectorAll('.scr').forEach(e=>e.classList.toggle('on',e.id===s));
+  document.querySelectorAll('#nav .it').forEach(e=>e.classList.toggle('on',e.dataset.s===RAIL[s]));
+  renderAll();
+}
+// the rail item of the screen showing is its Back: a Config group -> the menu, Titration runs -> the Files menu (0.9.28)
+document.querySelectorAll('#nav .it').forEach(e=>e.onclick=()=>{ const s=e.dataset.s;
+  if (s===S.screen){ if (s==='config') S.cfgGroup=-1; if (s==='files') S.fiRuns=false; renderAll(); return; }
+  show(s); });
+$('hMode').onclick=()=>{ S.showAbs=!S.showAbs; renderAll(); };
+$('bTitr').onclick=()=>{ titrToggle(); renderAll(); };
+$('bZero').onclick=()=>confirmBox('Zero the reading?','Sets the current value as the new zero.',()=>{ if (S.fault) return; if (S.run&&S.run.active) S.run.dirty=true; S.zero=S.raw; });
+$('bMode').onclick=()=>{ atModeNext(); renderAll(); };
+$('bAuto').onclick=()=>{
+  if (atRunning() || S.fault || pMissing() || (S.exp && !(S.run&&S.run.active)) || S.ulStep<=0 || S.ulDrop<=0){ autoToggle(); renderAll(); return; }
+  const act=S.run&&S.run.active;
+  confirmBox(act?'Hand this run to Auto?':'Start auto-titration?',atModeName(atMode())+' mode. The pump doses titrant into the sample: '+S.openDrops+' drops to open, then as needed, '+S.maxMl.toFixed(1)+' mL at most in all'+(act?' (titrant already added counts)':'')+'.',autoToggle);
+};
+$('tHealth').onclick=()=>{ S.histMsgHold=false; renderHist(); $('hist').classList.add('on'); };
+$('histX').onclick=()=>$('hist').classList.remove('on');
+document.querySelectorAll('#hist .hh .btn[data-d]').forEach(b=>b.onclick=()=>{ hiDays=+b.dataset.d; S.histMsgHold=false; renderHist(); });
+$('bExp').onclick=()=>{ exportRun(); renderAll(); };
+$('bExpAll').onclick=()=>{
+  const n=runNames().length; if (S.exp || !n){ if (S.exp) exportAll(); else S.titrStatus='Nothing stored on the unit'; renderAll(); return; }
+  const u=storeUsedKb();
+  confirmBox('Copy all runs to the stick?', n+' runs ('+(u>=1024?(u/1024).toFixed(1)+' MB':Math.round(u)+' KB')+') and the results log. Runs already on the stick are skipped.'+(u>=1024?' Leave the stick in until the status line says it is done.':''), exportAll);
+};
+$('cfgBack').onclick=()=>{ S.cfgGroup=-1; renderConfig(); };
+$('fiBack').onclick=()=>{ S.fiRuns=false; renderFiles(); };
+$('caldue').onclick=()=>show('service');
+// pump page
+document.querySelectorAll('#pump .vbtn').forEach(b=>b.onclick=()=>rowTap(b.dataset.f));
+$('pDrop').onclick=()=>{ if (pumpBusy()) return renderAll(); const n=Math.max(1,Math.round(S.ulDrop/S.ulStep)); pumpStart(+1,n,S.sps,true); S.pStatus='1 drop = '+n+' steps'; renderAll(); };
+$('pStep').onclick=()=>{ if (pumpBusy()) return renderAll(); pumpStart(+1,1,S.sps,true); S.pStatus='1 step = '+(S.ulStep*1000).toFixed(0)+' nL'; renderAll(); };
+$('pDose').onclick=()=>{ if (pumpBusy()) return renderAll(); pumpStart(+1,S.doseSteps,S.sps,true); S.pStatus='Dosing '+S.doseSteps+' steps'; renderAll(); };
+$('pCal').onclick=()=>{ if (pumpBusy()) return renderAll(); pumpStart(+1,CAL_STEPS,S.calSps,false,true); S.pStatus='Cal run: '+CAL_STEPS+' steps at '+flowUlMin(S.calSps).toFixed(0)+' uL/min (~'+Math.round(CAL_STEPS/S.calSps)+' s)'; renderAll(); };
+$('pReset').onclick=()=>{ S.pTotal=0; S.pDoses=0; S.pStatus='Totals reset'; renderAll(); };
+$('pEnterMl').onclick=()=>rowTap('calMl');
+function prime(dir){ if (S.pRun){ pumpHalt('Stopped'); return; } if (pumpBusy()) return; pumpStart(dir,0,S.primeSps,false); S.pStatus=(dir>0?'Priming':'Purging')+' at '+flowUlMin(S.primeSps).toFixed(0)+' uL/min'; }
+$('pPrime').onclick=()=>{ prime(+1); renderAll(); }; $('pRev').onclick=()=>{ prime(-1); renderAll(); };
+$('pStop').onclick=()=>{ pumpHalt('Stopped'); renderAll(); };
+// service screen
+$('svUnlock').onclick=()=>{ if (unlocked()){ lock(); S.svcStatus='Locked'; renderService(); } else openEditor('pin'); };
+$('svMark').onclick=()=>{ if (!unlocked()) return; touchSvc(); confirmBox('Record calibration as done?', S.calInt?'Records today as the last calibration. The next reminder falls due in '+S.calInt+' days.':'Records today as the last calibration. The reminder is currently off.', ()=>{ S.calLast=S.t; S.svcStatus='Calibration recorded'; serviceLog('calibrated'); }); };
+// the Interval line is the interval setting; Clear zero took its button (0.9.33, the SCM's 0.9.39)
+$('svIntRow').onclick=()=>{ if (!unlocked()) return; touchSvc(); openEditor('calInt'); };
+$('svZero').onclick=()=>{ if (!unlocked()) return; touchSvc(); confirmBox('Clear the zero offset?','Relative readings will equal the Absolute reading again. The present zero offset is '+S.zero.toFixed(1)+' mV.',()=>{ if (S.run&&S.run.active) S.run.dirty=true; S.zero=0; S.svcStatus='Zero offset cleared - Relative now equals Absolute'; serviceLog('zero cleared'); }); };
+$('svPin').onclick=()=>{ if (!unlocked()) return; touchSvc(); openEditor('newpin'); };
+$('svPump').onclick=()=>show('pump');
+$('svReset').onclick=()=>{ if (!unlocked()) return; touchSvc(); confirmBox('Reset all settings?','Restores every setting to factory values - including the input and pump calibration and the drop size - and marks calibration due. The clock, the service PIN and the interval are kept.',()=>{ const keep={pin:S.pin,calInt:S.calInt,pPowerSense:S.pPowerSense}; /* power sense describes wiring: kept, as the firmware does */ Object.assign(S,DEF,keep); S.calLast=S.t-S.calInt*86400; S.svcStatus='Factory settings restored'; serviceLog('factory reset'); applyBright(); }); };
+function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',2600); }
+
+// ------------------------------------------------------------------ scenario panel
+document.querySelectorAll('.sc').forEach(b=>b.onclick=()=>{
+  const g=b.dataset.g, v=b.dataset.v;
+  document.querySelectorAll('.sc[data-g="'+g+'"]').forEach(x=>x.classList.toggle('on',x===b));
+  switch(g){
+    case 'sample': if (S.run && S.run.active){ toast('Finish or stop the run first'); break; } loadSample(v); S.raw=S.abs; toast('Fresh sample in the cell'); break;
+    case 'titrant': S.titrantWrong = v==='wrong'; break;
+    case 'bottle': S.bottleEmpty = v==='empty'; break;
+    case 'sensor': S.sensor=v; break;
+    case 'usb': S.usbIn = v==='in'; break;
+    case 'ppower': S.pPower = v==='on'; break;
+    case 'speed': S.speed=+v; break;
+  }
+  renderAll();
+});
+$('bCalDue').onclick=()=>{ S.calLast=S.t-S.calInt*86400-3*86400; renderAll(); };
+$('bReset').onclick=()=>boot();
+
+// ------------------------------------------------------------------ file browser (right-hand panel)
+let viewing=null;
+function fileRow(list, where, name, text){
+  const d=document.createElement('div'); d.className='f'+(viewing&&viewing.where===where&&viewing.name===name?' sel':'');
+  const lines=text.split('\n').length-1;
+  d.innerHTML='<span class="fn"></span><span class="fs">'+(text.length>=1024?kb(text.length)+' KB':text.length+' B')+'</span>';
+  d.firstChild.textContent=name; d.title=lines+' lines';
+  d.onclick=()=>{ viewing={where,name}; renderFileLists(); };
+  list.appendChild(d);
+}
+function renderFileLists(open){
+  if (open) viewing=open;
+  const ul=$('unitList'); ul.innerHTML='';
+  const runs=runNames().slice().reverse();
+  if (S.results.length) fileRow(ul,'unit','results.csv',RESULTS_HEADER+'\n'+S.results.join('\n')+'\n');
+  if (S.svcLog.length) fileRow(ul,'unit','service_log.csv','Timestamp,Event,Interval_days\n'+S.svcLog.join('\n')+'\n');
+  for (const n of runs) fileRow(ul,'unit','runs/'+n,S.unit[n]);
+  const us=$('usbList'); us.innerHTML='';
+  const names=Object.keys(S.usb).sort().reverse();
+  if (!S.usbIn) us.innerHTML='<div class="note">No stick inserted.</div>';
+  else if (!names.length) us.innerHTML='<div class="note">Empty. Export run and Export all write here.</div>';
+  else for (const n of names) fileRow(us,'usb',n,S.usb[n]);
+  const v=$('csvView'), h=$('csvHead');
+  const text = !viewing ? null : viewing.where==='usb' ? S.usb[viewing.name]
+    : viewing.name==='results.csv' ? (S.results.length?RESULTS_HEADER+'\n'+S.results.join('\n')+'\n':null)
+    : viewing.name==='service_log.csv' ? (S.svcLog.length?'Timestamp,Event,Interval_days\n'+S.svcLog.join('\n')+'\n':null)
+    : S.unit[viewing.name.replace(/^runs\//,'')];
+  if (!text){ v.hidden=true; h.hidden=true; return; }
+  const rows=text.split('\n'); v.textContent=rows.slice(0,90).join('\n')+(rows.length>91?'\n... '+(rows.length-91)+' more lines':'');
+  $('csvName').textContent=(viewing.where==='usb'?'USB stick / ':'Instrument / ')+viewing.name; v.hidden=false; h.hidden=false;
+  $('csvCopy').onclick=()=>{ const b=$('csvCopy'); const done=()=>{ b.textContent='Copied'; setTimeout(()=>b.textContent='Copy',1500); };
+    try { navigator.clipboard.writeText(text).then(done,()=>{ selectPre(); }); } catch(e){ selectPre(); } };
+}
+function selectPre(){ const r=document.createRange(); r.selectNodeContents($('csvView')); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+// ------------------------------------------------------------------ main loop
+function renderAll(){
+  renderTop(); renderHome();
+  if (S.screen==='titrate') renderTitrate();
+  if (S.screen==='scope') renderScope();
+  if (S.screen==='files') renderFiles();
+  if (S.screen==='config') renderConfig();
+  if (S.screen==='pump') renderPump();
+  if (S.screen==='service') renderService();
+  if ($('hist').classList.contains('on')) renderHist();
+  if (edField && FIELD[edField] && FIELD[edField].live) renderEd();
+}
+let acc=0, lastReal=performance.now(), lastDraw=0, lastUnitCount=-1, lastUsbCount=-1;
+function loop(now){
+  acc += (now-lastReal)/1000*S.speed; lastReal=now;
+  let n=0; while (acc>=DT && n<2400){ tick(); acc-=DT; n++; }
+  if (n>=2400) acc=0;
+  if (now-lastDraw > 100){
+    lastDraw=now; blink=Math.floor(S.t)%2===0;
+    renderTop(); renderHome();
+    if (S.screen==='titrate') renderTitrate();
+    if (S.screen==='scope' && n) renderScope();
+    if (S.screen==='files') renderFiles();
+    if (S.screen==='pump') renderPump();
+    if (S.screen==='service') renderService();
+    if ($('hist').classList.contains('on') && n) renderHist();
+    if (edField && FIELD[edField] && FIELD[edField].live) renderEd();
+    const uc=runNames().length, bc=Object.keys(S.usb).length;
+    if (uc!==lastUnitCount || bc!==lastUsbCount){ lastUnitCount=uc; lastUsbCount=bc; renderFileLists(); }
+  }
+  requestAnimationFrame(loop);
+}
+
+// ------------------------------------------------------------------ boot: a fortnight of prior runs, then the live panel
+function seedRuns(){
+  const now=S.t; S.seeding=true; S.usbIn=false;
+  const starts=[];
+  for (let d=13; d>=0; d--){
+    const day=new Date((now-d*86400)*1000); day.setHours(0,0,0,0);
+    const k = d===0 ? 1 : 1+Math.floor(Math.random()*2.2);
+    for (let i=0;i<k;i++) starts.push(Math.floor(day.getTime()/1000)+Math.round((8+Math.random()*8.5)*3600));
+  }
+  starts.sort((a,b)=>a-b);
+  const plan=starts.filter(t=>t<now-1800);
+  plan.forEach((st,i)=>{
+    S.t=st; S.lastSec=Math.floor(st);
+    loadSample(Math.random()<0.8?'anionic':'cationic'); S.raw=S.abs; S.rawInit=true;
+    S.bottleEmpty = (i===Math.floor(plan.length*0.35));
+    if (i===Math.floor(plan.length*0.6)) S.slopeMag=0.018;        // one sample needs more titrant than Max titrant
+    S.pLastStop = st - 300 - Math.random()*7200;
+    autoToggle();
+    for (let k=0;k<4*1500 && S.run.active;k++) tick();
+    if (S.run.active) titrFinalize(TO.STOPPED_OPERATOR,'Stopped by operator');
+    S.bottleEmpty=false;
+  });
+  S.t=now; S.lastSec=Math.floor(now); S.seeding=false; S.usbIn=true;
+  S.pTotal=0; S.pDoses=0; S.pStatus='Idle'; S.pLastStop=now-900;
+  loadSample('anionic'); S.raw=S.abs; S.beaker=0;
+  S.titrStatus=''; S.lastName='';
+}
+function boot(){
+  fresh(); seedHistory(); seedRuns();
+  for (let i=0;i<8;i++) tick();
+  hiDays=7; edField=null; $('editor').classList.remove('on'); $('confirm').classList.remove('on'); $('hist').classList.remove('on');
+  document.querySelectorAll('.sc').forEach(b=>b.classList.toggle('on',['anionic','ok','full','healthy','in','1','on'].includes(b.dataset.v)));
+  viewing=null; lastUnitCount=-1; applyBright(); show('home'); acc=0; lastReal=performance.now();
+}
+buildMenu(); buildFilesMenu(); buildKb(); boot();
+requestAnimationFrame(loop);
+})();
+</script>
