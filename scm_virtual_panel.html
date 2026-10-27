@@ -144,7 +144,11 @@ html.bare .bezel{border-radius:0;box-shadow:none}
 #service{gap:10px}
 #service .dcard{padding:14px}
 #service .drow{height:36px}
-#service .srow{height:64px;display:flex;gap:10px}
+#service .srow{height:56px;display:flex;gap:10px}
+#svStrip{height:52px;flex:none;display:flex;align-items:center;gap:16px}
+#svStrip .btn{width:150px;height:52px;font-size:28px}
+#svStrip .ct{font-size:28px;color:#E6EDF3;flex:1}
+#svStrip #svUnlock{width:180px;font-weight:500}
 #service .srow .btn{flex:1;height:100%;font-size:20px;font-weight:500}
 #service .btn.off{opacity:.4;pointer-events:none}
 /* config */
@@ -220,7 +224,7 @@ html.bare .bezel{border-radius:0;box-shadow:none}
 <div class="wrap">
   <div class="head">
     <h1>SCM Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.59. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.60. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -255,12 +259,12 @@ html.bare .bezel{border-radius:0;box-shadow:none}
                   <div class="ftr"><div class="absl" id="scmAbs"></div><div class="dich" id="di1c" style="right:190px"></div><div class="dich" id="di2c" style="right:60px"></div><div class="unit" id="scmUnit">mV</div></div>
                 </div>
                 <div class="brow">
-                  <div class="vbtn" id="bLow"><div class="cap">Low Alarm</div><div class="val" id="vLow">-500 mV</div></div>
-                  <div class="btn f32" id="bZero" style="font-weight:500">ZERO</div>
-                  <div class="vbtn" id="bHigh"><div class="cap">High Alarm</div><div class="val" id="vHigh">+500 mV</div></div>
+                  <div class="vbtn" id="bLow"><div class="cap">Low alarm</div><div class="val" id="vLow">-500 mV</div></div>
+                  <div class="btn f32" id="bZero" style="font-weight:500">Zero</div>
+                  <div class="vbtn" id="bHigh"><div class="cap">High alarm</div><div class="val" id="vHigh">+500 mV</div></div>
                 </div>
                 <div class="crow">
-                  <div class="btn" id="bClean">Manual Clean</div>
+                  <div class="btn" id="bClean">Manual clean</div>
                   <div class="btn c-warn" id="bPid">PID: MANUAL  0.0%</div>
                 </div>
               </div>
@@ -327,8 +331,8 @@ html.bare .bezel{border-radius:0;box-shadow:none}
 
               <!-- SERVICE -->
               <div class="scr" id="service">
+                <div id="svStrip"><div class="btn" id="svBack">&#8249;&nbsp;&nbsp;Back</div><span class="ct">Service &amp; Calibration</span><div class="btn" id="svUnlock">Unlock</div></div>
                 <div class="card dcard">
-                  <div class="dcap">Calibration reminder</div>
                   <div class="drow"><span class="n">Status</span><span class="v" id="svState">-</span></div>
                   <div class="drow"><span class="n">Last calibrated</span><span class="v" id="svLast">-</span></div>
                   <div class="drow" id="svIntRow" style="cursor:pointer;border-radius:8px;margin:0 -6px;padding:0 6px"><span class="n">Interval</span><span class="v" id="svInt">-</span></div>
@@ -336,14 +340,13 @@ html.bare .bezel{border-radius:0;box-shadow:none}
                 </div>
                 <div class="status" id="svMsg"></div>
                 <div class="srow">
-                  <div class="btn" id="svUnlock">Unlock</div>
-                  <div class="btn g" id="svMark">&#10003;&nbsp; Mark calibrated</div>
+                  <div class="btn g" id="svMark">Mark calibrated</div>
                   <div class="btn g" id="svZero">Clear zero</div>
+                  <div class="btn g" id="svPin">Change PIN</div>
                 </div>
                 <div class="srow">
                   <div class="btn g" id="svPid">PID: On</div>
                   <div class="btn g" id="svClean">Clean: On</div>
-                  <div class="btn g" id="svPin">Change PIN</div>
                   <div class="btn g c-crit" id="svReset">Factory reset</div>
                 </div>
               </div>
@@ -359,7 +362,7 @@ html.bare .bezel{border-radius:0;box-shadow:none}
             <!-- modals -->
             <div class="modal" id="help">
               <div class="card dlg">
-                <div class="hh"><div class="t">Device Manual</div><div class="btn x" id="helpX">&#10005;</div></div>
+                <div class="hh"><div class="t">Device manual</div><div class="btn x" id="helpX">&#10005;</div></div>
                 <div style="width:240px;height:240px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center"><svg width="216" height="216" width="216" height="216" class="segno"><g transform="scale(8)"><path fill="#fff" d="M0 0h27v27h-27z"/><path class="qrline" stroke="#000" d="M1 1.5h7m2 0h2m1 0h2m4 0h7m-25 1h1m5 0h1m1 0h1m1 0h2m2 0h1m1 0h1m1 0h1m5 0h1m-25 1h1m1 0h3m1 0h1m1 0h4m3 0h1m2 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m1 0h1m2 0h1m1 0h4m1 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m3 0h1m2 0h1m2 0h1m1 0h1m1 0h3m1 0h1m-25 1h1m5 0h1m3 0h1m2 0h2m1 0h1m1 0h1m5 0h1m-25 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-17 1h1m2 0h2m3 0h1m-17 1h1m5 0h1m1 0h1m1 0h1m1 0h3m2 0h2m2 0h3m-22 1h1m1 0h1m4 0h1m1 0h2m1 0h2m1 0h1m1 0h5m-18 1h5m2 0h1m1 0h2m1 0h2m1 0h1m1 0h2m-25 1h2m1 0h3m1 0h1m2 0h1m3 0h1m1 0h3m2 0h1m2 0h1m-24 1h1m1 0h2m1 0h2m3 0h2m3 0h1m1 0h2m4 0h1m-25 1h1m1 0h1m1 0h1m4 0h2m1 0h2m1 0h3m1 0h1m3 0h1m-24 1h1m4 0h2m1 0h2m3 0h9m1 0h2m-25 1h1m1 0h1m4 0h2m8 0h3m1 0h2m1 0h1m-25 1h1m4 0h2m1 0h1m1 0h11m1 0h1m-15 1h2m1 0h1m1 0h1m1 0h2m3 0h1m-21 1h7m2 0h1m1 0h1m1 0h1m2 0h1m1 0h1m1 0h1m3 0h1m-25 1h1m5 0h1m3 0h3m1 0h3m3 0h1m-21 1h1m1 0h3m1 0h1m2 0h2m1 0h2m1 0h6m1 0h1m-23 1h1m1 0h3m1 0h1m2 0h1m1 0h1m1 0h3m1 0h2m4 0h2m-25 1h1m1 0h3m1 0h1m3 0h1m2 0h3m5 0h2m1 0h1m-25 1h1m5 0h1m4 0h2m1 0h3m1 0h3m3 0h1m-25 1h7m1 0h1m1 0h2m4 0h1m1 0h1m2 0h1m2 0h1"/></g></svg></div>
               </div>
             </div>
@@ -405,8 +408,8 @@ html.bare .bezel{border-radius:0;box-shadow:none}
         <div class="box">
           <h2>Try this</h2>
           <ol class="steps">
-            <li>Tap <b>Low Alarm</b> and set <b>-20</b> with the keypad. The status chip turns red and the reading goes red.</li>
-            <li>Tap <b>Manual Clean</b>, then open <b>Trend</b> and set the window to <b>1 m</b>: red flush, green recover, and the live reading dipping and recovering. Set speed to &times;10 to watch it faster.</li>
+            <li>Tap <b>Low alarm</b> and set <b>-20</b> with the keypad. The status chip turns red and the reading goes red.</li>
+            <li>Tap <b>Manual clean</b>, then open <b>Trend</b> and set the window to <b>1 m</b>: red flush, green recover, and the live reading dipping and recovering. Set speed to &times;10 to watch it faster.</li>
             <li>Tap <b>PID: MANUAL</b>: the keypad shows the dose. Enter sets a new manual value; the <b>AUTO</b> key hands over to the controller, which drives the reading to the setpoint (the amber line on the Trend is the dose). In AUTO, tapping the button asks what output to hold in MANUAL.</li>
             <li>Choose <b>Sensor: fouling</b> on the right, open <b>Scope</b> and tap the <b>Signal Health</b> tile for the 60-day history. Then choose <b>No signal</b>: a cut cable reads under 4 mA, so the panel shows <b>SENSOR FAULT</b> and dashes instead of a number, and the controller drops to MANUAL.</li>
             <li>Press <b>Make calibration due</b>. Tap the flashing <b>CAL DUE</b> badge, unlock with the demo's PIN <b>0000</b>, then <b>Mark calibrated</b>.</li>
@@ -924,9 +927,9 @@ const REC_KEYS = [['zero_offset_mv','zero',3]];
 function cfgExport(){
   if (!S.usb){ S.cfgIo='No USB stick'; return; }
   const fmt=(v,p)=> p==='b' ? (v?1:0) : p ? (+v).toFixed(p) : Math.round(v);
-  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.59, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
+  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.60, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
   CFG_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[4])));
-  rows.push('','# Calibration of the sensor input and the 4-20 mA outputs. Import applies','# these too; Service > Reset to factory defaults restores the built-in values.');
+  rows.push('','# Calibration of the sensor input and the 4-20 mA outputs. Import applies','# these too; Service > Factory reset restores the built-in values.');
   CAL_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
   rows.push('','# This board only, for the record: these lines are NOT read back by Import.');
   REC_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
@@ -951,7 +954,7 @@ function buildFilesMenu(){
   const m=$('fiMenu'); m.innerHTML='';
   [['list','Data logging',()=>{S.fiPage=1;renderFiles();}],
    ['upload','Export configuration',()=>{cfgExport();renderFiles();}],
-   ['download','Import configuration',()=>confirm('Import configuration?','Reads SCM_Config.txt from the USB stick and replaces the settings and calibration on this unit. The zero point and the service PIN are not changed.',cfgImport)]
+   ['download','Import configuration',()=>confirm('Import configuration?','Reads SCM_Config.txt from the USB stick and replaces this unit\'s settings and calibration. The zero offset and the service PIN are not changed.',cfgImport,'Import',true)]
   ].forEach(it=>{ const r=document.createElement('div'); r.className='mrow';
     r.innerHTML='<svg viewBox="0 0 24 24"><path d="'+ICONS[it[0]]+'"/></svg><span></span><span class="ar">&#8250;</span>'; r.querySelector('span').textContent=it[1]; r.onclick=it[2]; m.appendChild(r); });
   const st=document.createElement('div'); st.className='st'; st.id='fiCfgSt'; m.appendChild(st);
@@ -1037,8 +1040,8 @@ const GROUPS = [
   {name:'Device manual', icon:'book', help:true, rows:[]},
 ];
 const FIELD = {
-  alarmLow:{title:'Low Alarm', hint:()=>fmtSc(-1000,false)+' to '+fmtSc(1000,true), get:()=>fmtSc(S.alarmLow,true), set:v=>{S.alarmLow=clamp(v*S.dispDiv,-1000,1000);}},
-  alarmHigh:{title:'High Alarm', hint:()=>fmtSc(-1000,false)+' to '+fmtSc(1000,true), get:()=>fmtSc(S.alarmHigh,true), set:v=>{S.alarmHigh=clamp(v*S.dispDiv,-1000,1000);}},
+  alarmLow:{title:'Low alarm', hint:()=>fmtSc(-1000,false)+' to '+fmtSc(1000,true), get:()=>fmtSc(S.alarmLow,true), set:v=>{S.alarmLow=clamp(v*S.dispDiv,-1000,1000);}},
+  alarmHigh:{title:'High alarm', hint:()=>fmtSc(-1000,false)+' to '+fmtSc(1000,true), get:()=>fmtSc(S.alarmHigh,true), set:v=>{S.alarmHigh=clamp(v*S.dispDiv,-1000,1000);}},
   avg:{title:'Averaging (samples)', hint:'1 - 1000', get:()=>S.avg, set:v=>{S.avg=clamp(Math.round(v),1,1000);}},
   calVmin:{title:'Input @ 4 mA  (-1000 mV)', hint:'volts at the A0 pin (0 - 3.3)', get:()=>S.calVmin.toFixed(3), set:v=>{S.calVmin=clamp(v,0,3.3);}},
   calVmax:{title:'Input @ 20 mA  (+1000 mV)', hint:'volts at the A0 pin (0 - 3.3)', get:()=>S.calVmax.toFixed(3), set:v=>{S.calVmax=clamp(v,0,3.3);}},
@@ -1074,7 +1077,7 @@ function buildMenu(){
     r.onclick=()=>{ if (G.screen){ show(G.screen); return; } if (G.help){ $('help').classList.add('on'); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
     m.appendChild(r);
   });
-  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.59</span>'; m.appendChild(fw);
+  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.60</span>'; m.appendChild(fw);
 }
 function groupVisible(i){ const G=GROUPS[i]; return !(G.feat==='pid'&&!S.featPid) && !(G.feat==='clean'&&!S.featClean); }
 function renderConfig(){
@@ -1127,7 +1130,7 @@ function renderEd(){ const F=FIELD[edField]; $('edV').textContent = F.mask ? 'â€
 function key(k){
   if (k==='Enter'){ applyEdit(); closeEd(); return; }
   if (k==='Cancel'){ closeEd(); return; }
-  if (k==='AUTO'){ closeEd(); if (!S.fault) confirm('Switch PID to AUTO?','The controller takes over from the present dose output, with no step at the pump.',()=>{ S.pidAuto=true; const e=((S.sp-relHeld())/SPAN)*100*(S.rev?1:-1); S.integ=S.out-S.kp*e; }); return; }
+  if (k==='AUTO'){ closeEd(); if (!S.fault) confirm('Switch PID to AUTO?','The controller takes over from the present dose output, with no step at the pump.',()=>{ S.pidAuto=true; const e=((S.sp-relHeld())/SPAN)*100*(S.rev?1:-1); S.integ=S.out-S.kp*e; },'Switch'); return; }
   if (k==='Clear') edText=''; else if (k==='âŒ«') edText=edText.slice(0,-1);
   else if (k==='+/-') edText = edText.startsWith('-')?edText.slice(1):'-'+edText;
   else if (edText.length<10) edText+=k;
@@ -1144,7 +1147,7 @@ function applyEdit(){
 
 // ------------------------------------------------------------------ confirm
 let cfAction=null;
-function confirm(q,s,fn){ $('cfQ').textContent=q; $('cfS').textContent=s; cfAction=fn; $('confirm').classList.add('on'); }
+function confirm(q,s,fn,verb,bad){ $('cfQ').textContent=q; $('cfS').textContent=s; const y=$('cfYes'); y.textContent=verb||'Confirm'; y.style.background=bad?'#F87171':'#4ADE80'; cfAction=fn; $('confirm').classList.add('on'); }   // the button names the action; red when it cannot be undone (0.9.60)
 $('cfNo').onclick=()=>{ $('confirm').classList.remove('on'); cfAction=null; };
 $('cfYes').onclick=()=>{ $('confirm').classList.remove('on'); const a=cfAction; cfAction=null; if(a) a(); renderAll(); };
 
@@ -1164,8 +1167,8 @@ document.querySelectorAll('#nav .it').forEach(e=>e.onclick=()=>{
   if (e.dataset.s===S.screen){ if (S.screen==='config'){ S.cfgGroup=-1; renderConfig(); } if (S.screen==='files'){ S.fiPage=0; renderFiles(); } return; }
   show(e.dataset.s); });
 $('bLow').onclick=()=>openEditor('alarmLow'); $('bHigh').onclick=()=>openEditor('alarmHigh');
-$('bZero').onclick=()=>confirm('Zero the reading?','The current reading becomes the new zero. Relative readings are measured from it.',()=>{S.zero=S.held;});
-$('bClean').onclick=()=>{ if(S.cleanActive) return; confirm('Start a clean cycle?','Opens the flush valve for '+S.flushS+' s, then holds the reading for '+S.recovS+' s while the sensor recovers.',startClean); };
+$('bZero').onclick=()=>confirm('Zero the reading?','The current reading becomes the new zero. Relative readings are measured from it.',()=>{S.zero=S.held;},'Zero');
+$('bClean').onclick=()=>{ if(S.cleanActive) return; confirm('Start a clean cycle?','Opens the flush valve for '+S.flushS+' s, then holds the reading for '+S.recovS+' s while the sensor recovers.',startClean,'Clean'); };
 $('bPid').onclick=()=>{ if(!S.doseReady || S.fault) return; openEditor('tomanual'); };
 $('scmMode').onclick=()=>{ S.showAbs=!S.showAbs; renderAll(); };
 $('bWin').onclick=()=>{ const i=ORDER.indexOf(S.trendScale); S.trendScale=ORDER[(i+1)%7]; renderTrend(); };
@@ -1180,14 +1183,15 @@ $('fiLogRow').onclick=()=>openEditor('logInt');
 $('fiBack').onclick=()=>{S.fiPage=S.fiPage===2?1:0;renderFiles();};
 $('caldue').onclick=()=>show('service');
 $('svUnlock').onclick=()=>{ if(unlocked()){ lock(); renderService(); } else openEditor('pin'); };
-$('svMark').onclick=()=>{ if(!unlocked()) return; touch(); confirm('Record calibration as done?', S.calInt?'Records today as the last calibration. The next reminder falls due in '+S.calInt+' days.':'Records today as the last calibration. The reminder is currently off.', ()=>{ S.calLast=S.t; S.svcStatus='Calibration recorded'; }); };
+$('svBack').onclick=()=>show('config');
+$('svMark').onclick=()=>{ if(!unlocked()) return; touch(); confirm('Mark calibrated?', S.calInt?'Records today as the last calibration. The next reminder falls due in '+S.calInt+' days.':'Records today as the last calibration. The reminder is currently off.', ()=>{ S.calLast=S.t; S.svcStatus='Calibration recorded'; },'Mark'); };
 $('svIntRow').onclick=()=>{ if(!unlocked()) return; touch(); openEditor('calInt'); };
 $('svDriveRow').onclick=()=>{ if(!unlocked()) return; touch(); S.relayLow=!S.relayLow; renderService(); };
-$('svZero').onclick=()=>{ if(!unlocked()) return; touch(); confirm('Clear the zero offset?','Relative readings will equal the Absolute reading again. The present zero offset is '+S.zero.toFixed(1)+' mV.',()=>{ S.zero=0; S.svcStatus='Zero offset cleared - Relative now equals Absolute'; }); };
+$('svZero').onclick=()=>{ if(!unlocked()) return; touch(); confirm('Clear zero?','Relative readings will equal the Absolute reading again. The present zero offset is '+S.zero.toFixed(1)+' mV.',()=>{ S.zero=0; S.svcStatus='Zero offset cleared - Relative now equals Absolute'; },'Clear',true); };
 $('svPin').onclick=()=>{ if(!unlocked()) return; touch(); openEditor('newpin'); };
 $('svPid').onclick=()=>{ if(!unlocked()) return; touch(); S.featPid=!S.featPid; if(!S.featPid){S.pidAuto=false;S.out=0;} renderAll(); };
 $('svClean').onclick=()=>{ if(!unlocked()) return; touch(); S.featClean=!S.featClean; renderAll(); };
-$('svReset').onclick=()=>{ if(!unlocked()) return; touch(); confirm('Reset all settings?','Restores calibration, alarms, clean timings, PID and zero offset to factory defaults, and marks calibration due. Keeps the service PIN.',()=>{ const keep={pin:S.pin,calInt:S.calInt}; Object.assign(S,DEF,keep); S.pidAuto=false; S.out=0; S.calLast=S.t-S.calInt*86400; applyBright(); }); };
+$('svReset').onclick=()=>{ if(!unlocked()) return; touch(); confirm('Factory reset?','Restores every setting, including calibration and the zero offset, to factory values and marks calibration due. Keeps the service PIN and the reminder interval.',()=>{ const keep={pin:S.pin,calInt:S.calInt}; Object.assign(S,DEF,keep); S.pidAuto=false; S.out=0; S.calLast=S.t-S.calInt*86400; applyBright(); },'Reset',true); };
 // screenshot gesture on the logo: just a toast here
 let lp; $('logo').onpointerdown=()=>{ lp=setTimeout(()=>toast('Screenshot: on the real unit this writes screen_NNN.bmp to the USB stick'),700); }; $('logo').onpointerup=$('logo').onpointerleave=()=>clearTimeout(lp);
 function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',2600); }
