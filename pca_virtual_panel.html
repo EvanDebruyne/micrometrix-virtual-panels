@@ -94,15 +94,29 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
 #home .mode:active{background:#6f5b20;color:#E6EDF3}
 #home .pchip{position:absolute;right:0;top:1px;height:38px;line-height:38px;padding:0 16px;border-radius:14px;color:#0B0F14;font-size:28px;font-weight:500;background:#22D3EE}
 #home .mid{flex:1;display:flex;align-items:center;justify-content:center;overflow:visible;position:relative}
-/* home_other_lbl (0.9.23): the reading not on the digits, under the mode chip */
 #home .other{position:absolute;left:12px;top:2px;line-height:24px;font-size:20px;color:#8B98A9;white-space:nowrap}
 #home .digits{font-family:Arial,"Helvetica Neue",Helvetica,sans-serif;font-weight:700;font-size:215px;line-height:158px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:#22D3EE;white-space:nowrap}
 #home .ftr{height:34px;position:relative;flex:none}
-#home .state{position:absolute;left:0;top:0;line-height:34px;font-size:20px;color:#8B98A9;white-space:nowrap}
+#home .state{position:absolute;left:0;top:0;line-height:34px;font-size:20px;color:#8B98A9;white-space:pre}
 #home .rawl{position:absolute;left:0;right:0;top:0;text-align:center;line-height:34px;font-size:20px;color:#3A4656}
 #home .unit{position:absolute;right:0;top:0;line-height:34px;font-size:28px;color:#8B98A9}
 #home .brow{height:76px;display:flex;gap:10px;flex:none}
-#home .brow .btn{height:100%;font-size:32px;font-weight:500}
+#home .brow .btn{height:100%;font-size:28px;font-weight:500}
+/* Manual Titration (0.9.42): the Titrate chart plus Start/Stop, Prime, 1 Drop, Dose */
+#manual{gap:8px}
+#manual .tiles{height:84px;gap:8px}
+#manual .tcard{flex:1;position:relative;padding:12px;min-height:0}
+#manual canvas{position:absolute;display:block}
+#manual .band{position:absolute;background:rgba(74,222,128,.2);display:none}
+#manual .zline{position:absolute;height:2px;background:rgba(34,211,238,.6)}
+#manual .tempty{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;color:#3A4656;font-size:20px}
+#manual .tstat{position:absolute;left:14px;right:14px;bottom:13px;font-size:20px;line-height:22px;color:#8B98A9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#manual .brow{height:76px;display:flex;gap:8px;flex:none}
+#manual .brow .btn{height:100%;font-size:28px;font-weight:500}
+#manual .sbtn{flex-direction:column;gap:2px}
+#manual .sbtn .n{font-size:32px;font-weight:500;line-height:1.1}
+#manual .sbtn .s{font-size:20px;color:#8B98A9;line-height:1.1}
+#manual .sbtn.stop .n{color:#0B0F14}
 /* titrate */
 #titrate{gap:10px}
 #titrate .tcard{flex:1;position:relative;padding:12px;min-height:0}
@@ -188,6 +202,10 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
 .modal{position:absolute;left:0;top:0;width:800px;height:480px;background:rgba(0,0,0,.7);display:none}
 .modal.on{display:block}
 #confirm .dlg{position:absolute;left:120px;top:50%;transform:translateY(-50%);width:560px;padding:20px;display:flex;flex-direction:column;gap:14px}
+#help .dlg{position:absolute;left:190px;top:70px;width:420px;height:340px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px}
+#help .hh{width:100%;height:48px;display:flex;align-items:center;justify-content:space-between}
+#help .hh .t{font-size:28px;color:#E6EDF3}
+#help .hh .x{width:64px;height:48px;font-size:28px;color:#E6EDF3}
 #confirm .q{font-size:32px;color:#E6EDF3;line-height:1.15}
 #confirm .s{font-size:20px;color:#22D3EE;line-height:1.3}
 #confirm .bb{height:56px;display:flex;justify-content:space-between;align-items:center}
@@ -223,7 +241,7 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
 <div class="wrap">
   <div class="head">
     <h1>PCA Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.40. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.43. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -257,8 +275,36 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
                   <div class="ftr"><div class="state" id="hState">Ready</div><div class="rawl" id="hRaw"></div><div class="unit">mV</div></div>
                 </div>
                 <div class="brow">
-                  <div class="btn ink" id="bTitr" style="flex:2;background:#4ADE80">Start Titration</div>
+                  <div class="btn ink" id="bTitr" style="flex:2;background:#4ADE80">Manual Titration</div>
+                  <div class="btn ink" id="bHAuto" style="flex:2;background:#22D3EE">Auto Titrate</div>
                   <div class="btn" id="bZero" style="flex:1">ZERO</div>
+                </div>
+              </div>
+
+              <!-- MANUAL TITRATION (0.9.42) -->
+              <div class="scr" id="manual">
+                <div class="tiles">
+                  <div class="tile"><div class="cap">Current mV</div><div class="val" id="mCur">--</div></div>
+                  <div class="tile"><div class="cap">Elapsed</div><div class="val" id="mEl">--</div></div>
+                  <div class="tile"><div class="cap">Titrant uL</div><div class="val" id="mVol">0</div></div>
+                  <div class="tile"><div class="cap">Pump</div><div class="val" id="mPump">Idle</div></div>
+                </div>
+                <div class="card tcard" id="mCard">
+                  <div class="band" id="mBand"></div>
+                  <div class="zline" id="mZero"></div>
+                  <canvas id="mC" width="600" height="160"></canvas>
+                  <div class="axl" id="mYt">+100</div>
+                  <div class="axl" id="mY0" style="color:#22D3EE">0</div>
+                  <div class="axl" id="mYb">-100</div>
+                  <div class="axl" id="mXe"></div>
+                  <div class="tempty" id="mEmpty">Prime if needed, then Start Titration or add a drop</div>
+                  <div class="tstat" id="mStat"></div>
+                </div>
+                <div class="brow">
+                  <div class="btn ink" id="bMRun" style="flex:6;background:#4ADE80">Start Titration</div>
+                  <div class="btn" id="bMPrime" style="flex:3">Prime</div>
+                  <div class="btn sbtn" id="bMDrop" style="flex:4"><div class="n">1 Drop</div><div class="s" id="mDropUl">12.5 uL</div></div>
+                  <div class="btn sbtn" id="bMDose" style="flex:4"><div class="n" id="mDoseN">Dose</div><div class="s" id="mDoseUl"></div></div>
                 </div>
               </div>
 
@@ -277,7 +323,7 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
                   <div class="axl" id="tY0" style="color:#22D3EE">0</div>
                   <div class="axl" id="tYb">-100</div>
                   <div class="axl" id="tXe"></div>
-                  <div class="tempty" id="tEmpty">Press START TITRATION on Home</div>
+                  <div class="tempty" id="tEmpty">Start a titration on Home</div>
                   <div class="tstat" id="tStat">Idle</div>
                 </div>
                 <div class="arow"><div class="vbtn" id="bMode"><div class="cap">Mode</div><div class="val" id="tMode">Normal</div></div><div class="btn ink abtn" id="bAuto" style="background:#22D3EE">Auto Titrate</div></div>
@@ -403,6 +449,12 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
                 <div class="sum" id="hiSum"></div>
               </div>
             </div>
+            <div class="modal" id="help">
+              <div class="card dlg">
+                <div class="hh"><div class="t">Device Manual</div><div class="btn x" id="helpX">&#10005;</div></div>
+                <div style="width:240px;height:240px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center"><svg width="232" height="232"><g transform="scale(8)"><path fill="#fff" d="M0 0h29v29h-29z"/><path class="qrline" stroke="#000" d="M2 2.5h7m4 0h1m1 0h1m4 0h7m-25 1h1m5 0h1m1 0h1m1 0h1m3 0h1m1 0h1m1 0h1m5 0h1m-25 1h1m1 0h3m1 0h1m1 0h3m4 0h1m2 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m1 0h4m1 0h4m1 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m2 0h1m1 0h3m2 0h1m1 0h1m1 0h3m1 0h1m-25 1h1m5 0h1m6 0h2m1 0h1m1 0h1m5 0h1m-25 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-17 1h1m2 0h1m4 0h1m-17 1h1m5 0h1m1 0h1m2 0h1m1 0h2m2 0h2m2 0h3m-23 1h1m1 0h1m3 0h1m6 0h2m1 0h1m1 0h5m-24 1h1m1 0h1m1 0h3m1 0h1m2 0h3m1 0h2m1 0h2m1 0h1m1 0h2m-25 1h1m2 0h1m1 0h1m2 0h1m2 0h1m2 0h1m1 0h3m2 0h1m2 0h1m-25 1h1m1 0h1m1 0h5m2 0h2m3 0h1m1 0h2m4 0h1m-25 1h2m1 0h1m5 0h1m2 0h2m1 0h3m1 0h1m3 0h1m-24 1h1m3 0h1m1 0h1m3 0h1m2 0h9m1 0h2m-25 1h1m4 0h1m1 0h1m4 0h1m4 0h3m1 0h2m1 0h1m-25 1h1m2 0h5m1 0h1m2 0h9m1 0h1m-15 1h4m1 0h1m1 0h2m3 0h1m-21 1h7m2 0h1m1 0h1m1 0h1m2 0h1m1 0h1m1 0h1m3 0h1m-25 1h1m5 0h1m2 0h1m1 0h2m1 0h3m3 0h1m-21 1h1m1 0h3m1 0h1m2 0h2m1 0h2m1 0h6m1 0h1m-23 1h1m1 0h3m1 0h1m3 0h2m1 0h3m1 0h2m4 0h2m-25 1h1m1 0h3m1 0h1m5 0h4m5 0h2m1 0h1m-25 1h1m5 0h1m3 0h1m1 0h1m1 0h3m1 0h3m3 0h1m-25 1h7m1 0h1m1 0h2m4 0h1m1 0h1m2 0h1m2 0h1"/></g></svg></div>
+              </div>
+            </div>
             <div class="modal" id="confirm">
               <div class="card dlg">
                 <div class="q" id="cfQ"></div>
@@ -513,7 +565,7 @@ function fit(){ const s = stage.clientWidth/800; dev.style.transform = 'scale('+
 new ResizeObserver(fit).observe(stage); fit();
 
 // ------------------------------------------------------------------ firmware constants (PCA 0.9.21)
-const FW = '0.9.40';
+const FW = '0.9.43';
 const DEF = { zero:0, gain:1.00, avg:32, showAbs:false, showRaw:false, calVmin:0.478, calVmax:2.340,
   sps:800, doseSteps:9690, ulStep:0.0258, ulDrop:12.5, primeSps:2000, primeTo:600,
   band:2.5, approach:0.60, settle:10, maxDrops:20, openDrops:5, maxMl:10.0, bright:80, calInt:90, pin:'1234', pPowerSense:false, calSps:1500 };
@@ -1029,7 +1081,7 @@ const GUARDED = { calVmin:1, calVmax:1, ulStepCfg:1, calMl:1, ulDrop:1 };
 let blink=false;
 const mctx=document.createElement('canvas').getContext('2d');
 function measure(txt,px,w){ mctx.font=(w||400)+' '+px+'px Montserrat, Arial'; return mctx.measureText(txt).width; }
-const TITLE={home:'Particle Charge Analyzer',titrate:'Titration',scope:'Signal Health',files:'File Utilities',config:'Configuration',pump:'Dosing Pump',service:'Service & Calibration'};
+const TITLE={home:'Particle Charge Analyzer',manual:'Manual Titration',titrate:'Titration',scope:'Signal Health',files:'File Utilities',config:'Configuration',pump:'Dosing Pump',service:'Service & Calibration'};
 function renderTop(){
   $('clock').textContent=timeStr(S.t,true);
   const cs=calStatus(), cd=$('caldue'), tt=$('scrTitle'), x=178+measure('PCA Model 247',20,500)+14;
@@ -1055,15 +1107,67 @@ function renderHome(){
     $('hOther').textContent=(S.showAbs?'Relative ':'Absolute ')+fmtMv(S.showAbs?S.disp:S.raw,0)+' mV';
   }
   $('hRaw').textContent = S.showRaw ? 'Raw: '+S.rawCounts : '';
-  const bt=$('bTitr');
-  if (active){ bt.textContent='Stop Titration'; bt.style.background='#F87171'; st.textContent='Titrating  '+mmss(S.t-S.run.startT); st.style.color='#FBBF24'; }
-  else {
-    bt.textContent='Start Titration'; bt.style.background='#4ADE80';
-    if (S.fault){ st.textContent='Check the sensor cable'; st.style.color='#F87171'; }
-    else if (S.haveRun && S.run){ const x=tm(S.run.lastT); st.textContent='Last test:  '+pad2(x.mo)+'-'+pad2(x.d)+' '+pad2(x.h)+':'+pad2(x.mi); st.style.color='#8B98A9'; }
-    else { st.textContent='Ready'; st.style.color='#8B98A9'; }
-  }
-  bt.classList.toggle('dis', S.fault); $('bZero').classList.toggle('dis', S.fault); $('bAuto').classList.toggle('dis', S.fault || pMissing());
+  if (active){ st.textContent='Titrating  '+mmss(S.t-S.run.startT)+'    '+S.run.titrant.toFixed(0)+' uL'; st.style.color='#FBBF24'; }
+  else if (S.fault){ st.textContent='Check the sensor cable'; st.style.color='#F87171'; }
+  else if (S.haveRun && S.run){ const x=tm(S.run.lastT); st.textContent='Last test:  '+pad2(x.mo)+'-'+pad2(x.d)+' '+pad2(x.h)+':'+pad2(x.mi); st.style.color='#8B98A9'; }
+  else { st.textContent='Ready'; st.style.color='#8B98A9'; }
+  const run=atRunning(), locked=S.fault || pMissing();
+  const ha=$('bHAuto'); ha.textContent=run?'STOP':'Auto Titrate'; ha.style.background=run?'#F87171':'#22D3EE';
+  $('bTitr').classList.toggle('dis', S.fault); $('bZero').classList.toggle('dis', S.fault);
+  ha.classList.toggle('dis', locked); $('bAuto').classList.toggle('dis', locked);
+}
+// ------------------------------------------------------------------ Manual Titration (ma_refresh + the chart)
+function renderManual(){
+  const R=S.run, active=R&&R.active, run=atRunning(), locked=S.fault || pMissing();
+  $('mCur').textContent = S.fault ? '----' : fmtMv(S.disp,1);
+  $('mEl').textContent = R ? mmss((active?S.t:R.lastT)-R.startT) : '--';
+  $('mVol').textContent = R ? R.titrant.toFixed(0) : '0';
+  const pt=$('mPump');
+  if (S.pRun){ pt.textContent = S.pCont ? (S.pDir>0?'PRIMING':'REVERSE') : 'DOSING'; pt.style.color = S.pDir>0?'#4ADE80':'#FBBF24'; }
+  else if (pMissing()){ pt.textContent='NO POWER'; pt.style.color='#F87171'; }
+  else { pt.textContent='Idle'; pt.style.color='#8B98A9'; }
+  const rb=$('bMRun'); rb.textContent=active?'Stop Titration':'Start Titration'; rb.style.background=active?'#F87171':'#4ADE80'; rb.classList.toggle('dis', S.fault);
+  const priming=S.pRun && S.pCont, dosing=S.pRun && !S.pCont && !run;
+  const pb=$('bMPrime'); pb.textContent=priming?'STOP':'Prime'; pb.style.background=priming?'#F87171':''; pb.style.color=priming?'#0B0F14':'';
+  $('mDropUl').textContent=S.ulDrop.toFixed(1)+' uL';
+  $('mDoseN').textContent=dosing?'STOP':'Dose'; $('mDoseUl').textContent=dosing?'':(S.doseSteps*S.ulStep).toFixed(1)+' uL';
+  $('bMDose').style.background=dosing?'#F87171':''; $('bMDose').classList.toggle('stop',dosing);
+  ['bMPrime','bMDrop','bMDose'].forEach(id=>$(id).classList.toggle('dis', locked || run));
+  $('mStat').textContent = (!S.pRun && S.titrStatus) ? S.titrStatus : S.pStatus;
+  // the chart, as on Titrate
+  const card=$('mCard'), W=card.clientWidth-26, H=card.clientHeight-26;
+  const cw=Math.round(W*0.94), ch=Math.round(H*0.92), cx=13+Math.round((W-cw)/2), cy=13+Math.round((H-ch)/2)-8;
+  const c=$('mC'); if (c.width!==cw||c.height!==ch){ c.width=cw; c.height=ch; }
+  c.style.left=cx+'px'; c.style.top=cy+'px';
+  const z=$('mZero'); z.style.left=cx+'px'; z.style.width=cw+'px'; z.style.top=(cy+Math.round(ch/2)-1)+'px';
+  $('mYt').style.left='15px'; $('mYt').style.top='15px';
+  $('mY0').style.left='15px'; $('mY0').style.top=(cy+Math.round(ch/2)-13)+'px';
+  $('mYb').style.left='15px'; $('mYb').style.bottom='31px';
+  $('mXe').style.right='15px'; $('mXe').style.bottom='31px';
+  const g=c.getContext('2d'); g.clearRect(0,0,cw,ch); g.strokeStyle='#3A4656'; g.lineWidth=1;
+  for (let i=0;i<3;i++){ const y=Math.round((ch-1)*i/2)+0.5; g.beginPath(); g.moveTo(0,y); g.lineTo(cw,y); g.stroke(); }
+  for (let i=0;i<6;i++){ const x=Math.round((cw-1)*i/5)+0.5; g.beginPath(); g.moveTo(x,0); g.lineTo(x,ch); g.stroke(); }
+  const bd=$('mBand');
+  if (!R || (R.count<=0 && !active)){ $('mEmpty').style.display='block'; bd.style.display='none'; $('mYt').textContent='+100'; $('mYb').textContent='-100'; $('mXe').textContent=''; return; }
+  $('mEmpty').style.display='none';
+  const half=traceHalf(R, active), n=Math.min(R.count,TITR_MAX);
+  $('mYt').textContent='+'+half.toFixed(0); $('mYb').textContent='-'+half.toFixed(0); $('mXe').textContent=(n>1?n-1:0)+'s';
+  const px=Math.min(ch,Math.max(4,Math.round(S.band/half*ch))); bd.style.display='block'; bd.style.left=cx+'px'; bd.style.width=cw+'px'; bd.style.height=px+'px'; bd.style.top=(cy+Math.round(ch/2-px/2))+'px';
+  if (n>0) traceLine(g, cw, ch, R, active, n, half);
+}
+// shared with renderTitrate: the zero-centred axis half-range, and the resampled line
+function traceHalf(R, active){
+  let half = active ? Math.abs(S.disp) : R.vals.reduce((m,v)=>Math.max(m,Math.abs(v)),0);
+  if (half<20) half=20; half*=1.15; const step=niceStep(half/3); return Math.ceil(half/step)*step;
+}
+function traceLine(g, cw, ch, R, active, n, half){
+  // live end: one extra point, the reading now (0.9.38)
+  const live = active && n<TITR_MAX && !S.fault, V = live ? R.vals.slice(0,n).concat([S.disp]) : R.vals, m = live ? n+1 : n;
+  const P=300, pts=new Array(P);
+  for (let j=0;j<P;j++){ if (m===1){ pts[j]=V[0]; continue; } const pos=j*(m-1)/(P-1), i=Math.floor(pos); pts[j] = i>=m-1 ? V[m-1] : V[i]+(pos-i)*(V[i+1]-V[i]); }
+  g.strokeStyle='#FBBF24'; g.lineWidth=3; g.lineJoin='round'; g.beginPath();
+  for (let j=0;j<P;j++){ const x=(cw-1)*j/(P-1), y=(ch-1)*(0.5-clamp(pts[j],-half,half)/(2*half)); j?g.lineTo(x,y):g.moveTo(x,y); }
+  g.stroke();
 }
 
 // ------------------------------------------------------------------ Titrate (ui_titrate_chart_push / ui_autotitr_refresh)
@@ -1093,20 +1197,13 @@ function renderTitrate(){
   for (let i=0;i<6;i++){ const x=Math.round((cw-1)*i/5)+0.5; g.beginPath(); g.moveTo(x,0); g.lineTo(x,ch); g.stroke(); }
   if (!R || (R.count<=0 && !active)){ $('tEmpty').style.display='block'; $('tYt').textContent='+100'; $('tYb').textContent='-100'; $('tXe').textContent=''; return; }
   $('tEmpty').style.display='none';
-  let half = active ? Math.abs(S.disp) : R.vals.reduce((m,v)=>Math.max(m,Math.abs(v)),0);
-  if (half<20) half=20; half*=1.15; const step=niceStep(half/3); half=Math.ceil(half/step)*step;
+  const half=traceHalf(R, active);
   $('tYt').textContent='+'+half.toFixed(0); $('tYb').textContent='-'+half.toFixed(0);
   const n=Math.min(R.count,TITR_MAX); $('tXe').textContent=(n>1?n-1:0)+'s';
   if (n<=0) return;
   // endpoint band, +-S.band around zero (0.9.38)
   { const px=Math.min(ch,Math.max(4,Math.round(S.band/half*ch))); g.fillStyle='rgba(74,222,128,0.20)'; g.fillRect(0,Math.round(ch/2-px/2),cw,px); }
-  // live end: one extra point, the reading now (0.9.38)
-  const live = active && n<TITR_MAX && !S.fault, V = live ? R.vals.slice(0,n).concat([S.disp]) : R.vals, m = live ? n+1 : n;
-  const P=300, pts=new Array(P);
-  for (let j=0;j<P;j++){ if (m===1){ pts[j]=V[0]; continue; } const pos=j*(m-1)/(P-1), i=Math.floor(pos); pts[j] = i>=m-1 ? V[m-1] : V[i]+(pos-i)*(V[i+1]-V[i]); }
-  g.strokeStyle='#FBBF24'; g.lineWidth=3; g.lineJoin='round'; g.beginPath();
-  for (let j=0;j<P;j++){ const x=(cw-1)*j/(P-1), y=(ch-1)*(0.5-clamp(pts[j],-half,half)/(2*half)); j?g.lineTo(x,y):g.moveTo(x,y); }
-  g.stroke();
+  traceLine(g, cw, ch, R, active, n, half);
 }
 
 // ------------------------------------------------------------------ Scope + history popup (as the SCM)
@@ -1265,7 +1362,7 @@ function renderService(){
 
 // ------------------------------------------------------------------ Config: a menu of groups, each a scrolling list with Back
 // CFG_GROUPS (0.9.22, the SCM's 0.9.34 layout): a menu of groups, each a scrolling list with Back
-const ICONS={
+const ICONS={book:'M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h2v7l2.5-1.5L13 11V4h5z',
   eye:'M12 5C6.5 5 2.6 9.1 1 12c1.6 2.9 5.5 7 11 7s9.4-4.1 11-7c-1.6-2.9-5.5-7-11-7zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9zm0-7a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z',
   bolt:'M13 2 4 14h6l-1 8 9-12h-6z',
   drop:'M12 2s-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z',
@@ -1281,6 +1378,7 @@ const GROUPS=[
   {name:'Pump', icon:'drop', rows:[{n:'Pump controls',t:'pump'},{n:'Power sense (D5)',t:'psense'}]},
   {name:'Display & clock', icon:'display', rows:[{n:'Main readout',t:'mode'},{n:'Brightness',t:'bright'},{n:'Date',f:'date'},{n:'Time',f:'time'}]},
   {name:'Service', icon:'gear', screen:'service', rows:[]},
+  {name:'Device manual', icon:'book', help:true, rows:[]},   // the QR code to aquasummit.com/pca (0.9.43)
 ];
 function dirty(){ if (S.run && S.run.active) S.run.dirty=true; }
 const FIELD={
@@ -1318,7 +1416,7 @@ function buildMenu(){
     const r=document.createElement('div'); r.className='mrow';
     r.innerHTML='<svg viewBox="0 0 24 24"><path d="'+ICONS[G.icon]+'"/></svg><span></span><span class="ar">&#8250;</span>';
     r.querySelector('span').textContent=G.name;
-    r.onclick=()=>{ if (G.screen){ show(G.screen); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
+    r.onclick=()=>{ if (G.screen){ show(G.screen); return; } if (G.help){ $('help').classList.add('on'); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
     m.appendChild(r);
   });
   const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v'+FW+'</span>'; m.appendChild(fw);
@@ -1394,9 +1492,9 @@ $('cfNo').onclick=()=>{ $('confirm').classList.remove('on'); cfAction=null; };
 $('cfYes').onclick=()=>{ $('confirm').classList.remove('on'); const a=cfAction; cfAction=null; if (a) a(); renderAll(); };
 
 // ------------------------------------------------------------------ navigation (ui_show) + controls
-const RAIL={home:'home',titrate:'titrate',scope:'scope',files:'files',config:'config',pump:'config',service:'config'};
+const RAIL={home:'home',manual:'titrate',titrate:'titrate',scope:'scope',files:'files',config:'config',pump:'config',service:'config'};
 function show(s){
-  $('hist').classList.remove('on');
+  $('hist').classList.remove('on'); $('help').classList.remove('on');
   // the service area is Service + Config + Pump; anywhere else locks it
   if (!['service','config','pump'].includes(s) && unlocked()) lock();
   if (s==='config' && S.screen!=='config') S.cfgGroup=-1;
@@ -1411,16 +1509,25 @@ document.querySelectorAll('#nav .it').forEach(e=>e.onclick=()=>{ const s=e.datas
   if (s===S.screen){ if (s==='config') S.cfgGroup=-1; if (s==='files') S.fiRuns=false; renderAll(); return; }
   show(s); });
 $('hMode').onclick=()=>{ S.showAbs=!S.showAbs; renderAll(); };
-$('bTitr').onclick=()=>{ titrToggle(); renderAll(); };
+$('bTitr').onclick=()=>show('manual');   // Home's Manual Titration opens the screen; the run starts there (0.9.42)
+// Manual Titration screen: Start/Stop (stopping halts a prime or dose too), Prime (toggles), 1 Drop / Dose (open a run if none)
+$('bMRun').onclick=()=>{ if (S.run&&S.run.active && S.pRun && !atRunning()) pumpHalt('Stopped'); titrToggle(); renderAll(); };
+$('bMPrime').onclick=()=>{ if (atRunning()) return; if (S.pRun && !S.pCont) return; prime(+1); renderAll(); };
+$('bMDrop').onclick=()=>{ if (S.pRun || atRunning()) return; if (!(S.run&&S.run.active)) titrToggle(); if (!(S.run&&S.run.active)) return renderAll(); if (pumpBusy()) return renderAll(); const n=Math.max(1,Math.round(S.ulDrop/S.ulStep)); pumpStart(+1,n,S.sps,true); S.pStatus='1 drop = '+n+' steps'; renderAll(); };
+$('bMDose').onclick=()=>{ if (atRunning()) return; if (S.pRun){ if (!S.pCont) pumpHalt('Stopped'); return renderAll(); } if (!(S.run&&S.run.active)) titrToggle(); if (!(S.run&&S.run.active)) return renderAll(); if (pumpBusy()) return renderAll(); pumpStart(+1,S.doseSteps,S.sps,true); S.pStatus='Dosing '+S.doseSteps+' steps'; renderAll(); };
+$('bHAuto').onclick=()=>autoAsk(()=>{ autoToggle(); if (atRunning()) show('titrate'); else renderAll(); });
 $('bZero').onclick=()=>confirmBox('Zero the reading?','Sets the current value as the new zero.',()=>{ if (S.fault) return; if (S.run&&S.run.active) S.run.dirty=true; S.zero=S.raw; });
 $('bMode').onclick=()=>{ atModeNext(); renderAll(); };
-$('bAuto').onclick=()=>{
-  if (atRunning() || S.fault || pMissing() || (S.exp && !(S.run&&S.run.active)) || S.ulStep<=0 || S.ulDrop<=0){ autoToggle(); renderAll(); return; }
+// autotitr_ask(): the confirmation, then `go` - the plain toggle on Titrate, Home's version that then opens Titrate
+function autoAsk(go){
+  if (atRunning() || S.fault || pMissing() || (S.exp && !(S.run&&S.run.active)) || S.ulStep<=0 || S.ulDrop<=0){ go(); return; }
   const act=S.run&&S.run.active;
-  confirmBox(act?'Hand this run to Auto?':'Start auto-titration?',atModeName(atMode())+' mode. The pump doses titrant into the sample: '+S.openDrops+' drops to open, then as needed, '+S.maxMl.toFixed(1)+' mL at most in all'+(act?' (titrant already added counts)':'')+'.',autoToggle);
-};
+  confirmBox(act?'Hand this run to Auto?':'Start auto-titration?',atModeName(atMode())+' mode. The pump doses titrant into the sample: '+S.openDrops+' drops to open, then as needed, '+S.maxMl.toFixed(1)+' mL at most in all'+(act?' (titrant already added counts)':'')+'.',go);
+}
+$('bAuto').onclick=()=>autoAsk(()=>{ autoToggle(); renderAll(); });
 $('tHealth').onclick=()=>{ S.histMsgHold=false; renderHist(); $('hist').classList.add('on'); };
 $('histX').onclick=()=>$('hist').classList.remove('on');
+$('helpX').onclick=()=>$('help').classList.remove('on');
 document.querySelectorAll('#hist .hh .btn[data-d]').forEach(b=>b.onclick=()=>{ hiDays=+b.dataset.d; S.histMsgHold=false; renderHist(); });
 $('bExp').onclick=()=>{ exportRun(); renderAll(); };
 $('bExpAll').onclick=()=>{
@@ -1510,6 +1617,7 @@ function selectPre(){ const r=document.createRange(); r.selectNodeContents($('cs
 function renderAll(){
   renderTop(); renderHome();
   if (S.screen==='titrate') renderTitrate();
+  if (S.screen==='manual') renderManual();
   if (S.screen==='scope') renderScope();
   if (S.screen==='files') renderFiles();
   if (S.screen==='config') renderConfig();
@@ -1527,6 +1635,7 @@ function loop(now){
     lastDraw=now; blink=Math.floor(S.t)%2===0;
     renderTop(); renderHome();
     if (S.screen==='titrate') renderTitrate();
+    if (S.screen==='manual') renderManual();
     if (S.screen==='scope' && n) renderScope();
     if (S.screen==='files') renderFiles();
     if (S.screen==='pump') renderPump();

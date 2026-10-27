@@ -235,8 +235,8 @@ const PRODUCTS = {
       ['Clock','Battery-backed real-time clock']
     ],
     tour:[
-      {t:'Set an alarm', x:'Tap <kbd>Low Alarm</kbd> and enter <kbd>-20</kbd> on the keypad. The status chip and the reading turn red and the low-alarm relay closes.'},
-      {t:'Watch a clean cycle', x:'Tap <kbd>Manual Clean</kbd>, then open <kbd>Trend</kbd> and choose the <kbd>1 m</kbd> window: red flush, green recovery, and the reading held while the sensor is cleaned.', act:[{g:'speed',v:'10'}], al:'Speed up time ×10'},
+      {t:'Set an alarm', x:'Tap <kbd>Low alarm</kbd> and enter <kbd>-20</kbd> on the keypad. The status chip and the reading turn red and the low-alarm relay closes.'},
+      {t:'Watch a clean cycle', x:'Tap <kbd>Manual clean</kbd>, then open <kbd>Trend</kbd> and choose the <kbd>1 m</kbd> window: red flush, green recovery, and the reading held while the sensor is cleaned.', act:[{g:'speed',v:'10'}], al:'Speed up time ×10'},
       {t:'Hand over to the controller', x:'Tap <kbd>PID: MANUAL</kbd>. The keypad shows the dose; press <kbd>AUTO</kbd> and confirm. The controller walks the reading to the setpoint; the amber line on the Trend is the dose.'},
       {t:'See the sensor’s condition', x:'Open <kbd>Scope</kbd> for the live sensor waveform, then tap the <kbd>Flush health</kbd> tile for the sixty-day history; the sensor is graded during each flush.', act:[{g:'sensor',v:'fouling'}], al:'Make the sensor foul'},
       {t:'Cut the cable', x:'A cut cable reads under 4 mA, so the panel shows <kbd>SENSOR FAULT</kbd> and dashes instead of a number, drops the controller to MANUAL and closes the diagnostic relay.', act:[{g:'sensor',v:'none'}], al:'Cut the sensor cable'},
