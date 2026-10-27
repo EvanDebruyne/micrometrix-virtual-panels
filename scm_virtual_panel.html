@@ -220,7 +220,7 @@ html.bare .bezel{border-radius:0;box-shadow:none}
 <div class="wrap">
   <div class="head">
     <h1>SCM Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.57. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.59. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -485,7 +485,7 @@ function fit(){ const s = stage.clientWidth/800; dev.style.transform = 'scale('+
 new ResizeObserver(fit).observe(stage); fit();
 
 // ------------------------------------------------------------------ state (mirrors the .ino globals)
-const DEF = { zero:97, alarmLow:-500, alarmHigh:500, avg:32, calVmin:0.527, calVmax:2.609, dac4:658, dac20:3285,
+const DEF = { zero:97, alarmLow:-500, alarmHigh:500, avg:32, calVmin:0.491, calVmax:2.481, dac4:658, dac20:3285,
   cleanIntHr:1, flushS:60, recovS:60, sp:0, kp:1, ti:60, rev:true, dose4:13107, dose20:65535, bright:100,
   outMin:0, outMax:100, pwrup:0, pwrupOut:0, featPid:true, featClean:true, logInt:15, dispDiv:1, traces:7, calInt:90, pin:'0000' };   // the demo's own PIN - deliberately NOT the factory PIN, this page is public
 const HYST = 10, SPAN = 2000;
@@ -918,25 +918,32 @@ const CFG_KEYS = [
   ['diag_relay_failsafe','frelayFs',0,1,'b'], ['alarm_relays_failsafe','arelayFs',0,1,'b'], ['display_divisor','dispDiv',1,100,0], ['brightness_pct','bright',10,100,0],
   ['log_interval_min','logInt',1,1440,0], ['cal_reminder_days','calInt',0,730,0],
 ];
-const CAL_KEYS = [['zero_offset_mv','zero',3],['input_volts_at_4ma','calVmin',3],['input_volts_at_20ma','calVmax',3],['reading_out_4ma','dac4',0],['reading_out_20ma','dac20',0],['dose_out_4ma','dose4',0],['dose_out_20ma','dose20',0]];
+// calibration: exported AND imported since 0.9.59 (name, state key, decimals, lo, hi); REC_KEYS are this board's only
+const CAL_KEYS = [['input_volts_at_4ma','calVmin',3,0,3.3],['input_volts_at_20ma','calVmax',3,0,3.3],['reading_out_4ma','dac4',0,0,4095],['reading_out_20ma','dac20',0,0,4095],['dose_out_4ma','dose4',0,0,65535],['dose_out_20ma','dose20',0,0,65535]];
+const REC_KEYS = [['zero_offset_mv','zero',3]];
 function cfgExport(){
   if (!S.usb){ S.cfgIo='No USB stick'; return; }
   const fmt=(v,p)=> p==='b' ? (v?1:0) : p ? (+v).toFixed(p) : Math.round(v);
-  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.57, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
+  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.59, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
   CFG_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[4])));
-  rows.push('','# Calibration of the unit this file came from. For the record only:','# these lines are NOT read back by Import.');
+  rows.push('','# Calibration of the sensor input and the 4-20 mA outputs. Import applies','# these too; Service > Reset to factory defaults restores the built-in values.');
   CAL_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
+  rows.push('','# This board only, for the record: these lines are NOT read back by Import.');
+  REC_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
   S.files['SCM_Config.txt']={ rows, kind:'export', col:'#E6EDF3' };
-  S.cfgIo='Saved SCM_Config.txt ('+(CFG_KEYS.length+CAL_KEYS.length)+' settings). Safe to remove the stick.'; renderUsb('SCM_Config.txt');
+  S.cfgIo='Saved SCM_Config.txt ('+(CFG_KEYS.length+CAL_KEYS.length+REC_KEYS.length)+' settings). Safe to remove the stick.'; renderUsb('SCM_Config.txt');
 }
 function cfgImport(){
   if (!S.usb){ S.cfgIo='No USB stick'; return; }
   const f=S.files['SCM_Config.txt']; if (!f){ S.cfgIo='SCM_Config.txt not found on the stick'; return; }
   let ok=0, skip=0;
   f.rows.forEach(line=>{ const t=line.trim(); if(!t||t[0]==='#') return; const m=/^(\w+)\s*=\s*(-?[\d.]+)/.exec(t); if(!m){skip++;return;}
-    if (CAL_KEYS.some(k=>k[0]===m[1])) return; const k=CFG_KEYS.find(k=>k[0]===m[1]); const v=+m[2];
+    if (REC_KEYS.some(k=>k[0]===m[1])) return; const v=+m[2];
+    const ck=CAL_KEYS.find(k=>k[0]===m[1]); if (ck){ if (isNaN(v)||v<ck[3]||v>ck[4]){ skip++; return; } S[ck[1]]=v; ok++; return; }
+    const k=CFG_KEYS.find(k=>k[0]===m[1]);
     if (!k || isNaN(v) || v<k[2] || v>k[3]){ skip++; return; } S[k[1]] = k[4]==='b' ? v!==0 : v; ok++; });
   if (![1,10,100].includes(S.dispDiv)) S.dispDiv=1; if (S.outMax<=S.outMin){ S.outMin=0; S.outMax=100; }
+  if (S.calVmax<S.calVmin+0.1){ S.calVmin=DEF.calVmin; S.calVmax=DEF.calVmax; } if (S.dac20<=S.dac4){ S.dac4=DEF.dac4; S.dac20=DEF.dac20; } if (S.dose20<=S.dose4){ S.dose4=DEF.dose4; S.dose20=DEF.dose20; }
   S.out=clamp(S.out,S.outMin,S.outMax); applyBright();
   S.cfgIo='Imported '+ok+' settings'+(skip?', '+skip+' lines skipped':'');
 }
@@ -944,7 +951,7 @@ function buildFilesMenu(){
   const m=$('fiMenu'); m.innerHTML='';
   [['list','Data logging',()=>{S.fiPage=1;renderFiles();}],
    ['upload','Export configuration',()=>{cfgExport();renderFiles();}],
-   ['download','Import configuration',()=>confirm('Import configuration?','Reads SCM_Config.txt from the USB stick and replaces the settings on this unit. Calibration, zero and the service PIN are not changed.',cfgImport)]
+   ['download','Import configuration',()=>confirm('Import configuration?','Reads SCM_Config.txt from the USB stick and replaces the settings and calibration on this unit. The zero point and the service PIN are not changed.',cfgImport)]
   ].forEach(it=>{ const r=document.createElement('div'); r.className='mrow';
     r.innerHTML='<svg viewBox="0 0 24 24"><path d="'+ICONS[it[0]]+'"/></svg><span></span><span class="ar">&#8250;</span>'; r.querySelector('span').textContent=it[1]; r.onclick=it[2]; m.appendChild(r); });
   const st=document.createElement('div'); st.className='st'; st.id='fiCfgSt'; m.appendChild(st);
@@ -1067,7 +1074,7 @@ function buildMenu(){
     r.onclick=()=>{ if (G.screen){ show(G.screen); return; } if (G.help){ $('help').classList.add('on'); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
     m.appendChild(r);
   });
-  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.57</span>'; m.appendChild(fw);
+  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.59</span>'; m.appendChild(fw);
 }
 function groupVisible(i){ const G=GROUPS[i]; return !(G.feat==='pid'&&!S.featPid) && !(G.feat==='clean'&&!S.featClean); }
 function renderConfig(){
