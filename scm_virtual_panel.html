@@ -224,7 +224,7 @@ html.bare .bezel{border-radius:0;box-shadow:none}
 <div class="wrap">
   <div class="head">
     <h1>SCM Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.60. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.62. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -490,7 +490,7 @@ new ResizeObserver(fit).observe(stage); fit();
 // ------------------------------------------------------------------ state (mirrors the .ino globals)
 const DEF = { zero:97, alarmLow:-500, alarmHigh:500, avg:32, calVmin:0.491, calVmax:2.481, dac4:658, dac20:3285,
   cleanIntHr:1, flushS:60, recovS:60, sp:0, kp:1, ti:60, rev:true, dose4:13107, dose20:65535, bright:100,
-  outMin:0, outMax:100, pwrup:0, pwrupOut:0, featPid:true, featClean:true, logInt:15, dispDiv:1, traces:7, calInt:90, pin:'0000' };   // the demo's own PIN - deliberately NOT the factory PIN, this page is public
+  outMin:0, outMax:100, pwrup:0, pwrupOut:0, startupMin:10, featPid:true, featClean:true, logInt:15, dispDiv:1, traces:7, calInt:90, pin:'0000' };   // the demo's own PIN - deliberately NOT the factory PIN, this page is public
 const HYST = 10, SPAN = 2000;
 let S;
 function fresh(){
@@ -498,7 +498,7 @@ function fresh(){
   S = Object.assign({}, DEF, {
     t: now, speed:1, screen:'scm',
     abs:91, live:91, held:91, showAbs:false, aLow:false, aHigh:false,
-    cleanActive:false, phase:0, phaseStart:now, lastClean:now, fault:false, flowSwitch:true, di1Func:0, di1Low:true, di2Func:0, di2Low:true, fiPage:0, cfgIo:'', frelayFs:false, arelayFs:false, relayLow:true, healthLimit:0, healthAlarm:false, noFlow:false, hLowSecs:0,
+    cleanActive:false, phase:0, phaseStart:now, lastClean:now, fault:false, flowSwitch:true, di1Func:0, di1Low:true, di2Func:0, di2Low:true, fiPage:0, cfgIo:'', frelayFs:false, arelayFs:false, relayLow:true, healthLimit:0, healthAlarm:false, noFlow:false, hLowSecs:0, startupHold:DEF.startupMin>0, startupUntil:now+DEF.startupMin*60,
     pidAuto:false, out:0, integ:0, doseReady:true,
     usb:true, rowsToday:0, lastExport:'', lastKind:-1, exportStatus:'USB connected', lastSlot:-1, lastCleanLogT:0,
     trendScale:2, calLast: now - 23*86400, unlockedUntil:0, fails:0, lockoutUntil:0, svcStatus:'',
@@ -581,6 +581,10 @@ function stepSecond(quiet){
   const n = Math.max(1, S.avg/8);   // the firmware averages 16 kSPS buffers; per second this is the equivalent depth
   S.live += (inst - S.live)/n;
   S.noFlow = ((S.di1Func===1 || S.di2Func===1) && !S.flowSwitch);
+  // start-up settle (0.9.62): no flow keeps the timer at full; it counts down once flow is present
+  if (!S.startupMin) S.startupHold=false;
+  else if (S.noFlow){ S.startupUntil = now + S.startupMin*60; S.startupHold=true; }
+  else if (S.startupHold && now >= S.startupUntil) S.startupHold=false;
   if (!S.cleanActive && !S.noFlow) S.held += (inst - S.held)/n;
   // Signal Health alarm: a minute under the limit trips it, releases 2 % above
   if (!S.healthLimit) S.healthAlarm=false;   // otherwise set per flush in flushClose()
@@ -591,10 +595,11 @@ function stepSecond(quiet){
   const r = relHeld();
   S.aLow  = S.aLow  ? (r < S.alarmLow  + HYST) : (r < S.alarmLow);
   S.aHigh = S.aHigh ? (r > S.alarmHigh - HYST) : (r > S.alarmHigh);
+  if (S.startupHold) S.aLow = S.aHigh = false;
   if (S.fault) S.aLow = true;
   // PI tick
   if (!S.doseReady) { S.pidAuto=false; }
-  if (S.featPid && S.pidAuto && S.doseReady && !S.cleanActive && !S.fault && !S.noFlow){
+  if (S.featPid && S.pidAuto && S.doseReady && !S.cleanActive && !S.fault && !S.noFlow && !S.startupHold){
     const e = ((S.sp - r) / SPAN) * 100 * (S.rev ? 1 : -1);
     let u = S.kp*e + S.integ;
     if (S.ti>0){ const ni = S.integ + S.kp*e/S.ti; if ((u<S.outMax || ni<S.integ) && (u>S.outMin || ni>S.integ)) S.integ = ni; }
@@ -801,6 +806,7 @@ function renderScm(){
   if (S.fault){ txt='SENSOR FAULT'; bg='#F87171'; }
   else if (S.noFlow){ txt='NO FLOW'; bg='#FBBF24'; }
   else if (S.cleanActive){ const ph = S.phase===1?S.flushS:S.recovS; const rem = Math.max(0, ph - (S.t-S.phaseStart)); txt = (S.phase===1?'FLUSHING ':'RECOVERING ')+durShort(rem); bg='#22D3EE'; }
+  else if (S.startupHold){ txt='START-UP '+durShort(S.startupUntil-S.t); bg='#22D3EE'; }
   else if (S.aHigh){ txt='HIGH ALARM'; bg='#60A5FA'; } else if (S.aLow){ txt='LOW ALARM'; bg='#F87171'; } else if (S.healthAlarm){ txt='HEALTH LOW'; bg='#FBBF24'; } else { txt='NORMAL'; bg='#4ADE80'; }
   const chip=$('scmChip'); chip.textContent=txt; chip.style.background=bg;
   $('scmMode').textContent = S.showAbs?'ABSOLUTE':'RELATIVE'; $('scmMode').classList.toggle('rel', !S.showAbs);
@@ -916,7 +922,7 @@ const CFG_KEYS = [
   ['alarm_low_mv','alarmLow',-1000,1000,3], ['alarm_high_mv','alarmHigh',-1000,1000,3], ['health_alarm_pct','healthLimit',0,100,0],
   ['avg_samples','avg',1,1000,0], ['pid_setpoint_mv','sp',-1000,1000,3], ['pid_action_reverse','rev',0,1,'b'], ['pid_gain','kp',0.01,100,3],
   ['pid_integral_s','ti',0,3600,0], ['pid_output_min_pct','outMin',0,100,3], ['pid_output_max_pct','outMax',0,100,3], ['pid_powerup_mode','pwrup',0,2,0], ['pid_powerup_manual_pct','pwrupOut',0,100,3],
-  ['clean_interval_hr','cleanIntHr',0,168,3], ['clean_flush_s','flushS',1,600,0], ['clean_recover_s','recovS',0,600,0],
+  ['clean_interval_hr','cleanIntHr',0,168,3], ['startup_settle_min','startupMin',0,180,0], ['clean_flush_s','flushS',1,600,0], ['clean_recover_s','recovS',0,600,0],
   ['input1_function','di1Func',0,4,0], ['input1_active_closed','di1Low',0,1,'b'], ['input2_function','di2Func',0,4,0], ['input2_active_closed','di2Low',0,1,'b'],
   ['diag_relay_failsafe','frelayFs',0,1,'b'], ['alarm_relays_failsafe','arelayFs',0,1,'b'], ['display_divisor','dispDiv',1,100,0], ['brightness_pct','bright',10,100,0],
   ['log_interval_min','logInt',1,1440,0], ['cal_reminder_days','calInt',0,730,0],
@@ -927,7 +933,7 @@ const REC_KEYS = [['zero_offset_mv','zero',3]];
 function cfgExport(){
   if (!S.usb){ S.cfgIo='No USB stick'; return; }
   const fmt=(v,p)=> p==='b' ? (v?1:0) : p ? (+v).toFixed(p) : Math.round(v);
-  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.60, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
+  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.62, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
   CFG_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[4])));
   rows.push('','# Calibration of the sensor input and the 4-20 mA outputs. Import applies','# these too; Service > Factory reset restores the built-in values.');
   CAL_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
@@ -1011,7 +1017,7 @@ const ICONS = {
   book:'M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h2v7l2.5-1.5L13 11V4h5z'
 };
 const GROUPS = [
-  {name:'Sensor & alarms', icon:'bell', rows:[ {n:'Low alarm', f:'alarmLow'}, {n:'High alarm', f:'alarmHigh'}, {n:'Signal Health limit', f:'hlimit'}, {n:'Averaging (samples)', f:'avg'}, {n:'Input @ 4 mA  (-1000 mV)', f:'calVmin'}, {n:'Input @ 20 mA (+1000 mV)', f:'calVmax'} ]},
+  {name:'Sensor & alarms', icon:'bell', rows:[ {n:'Low alarm', f:'alarmLow'}, {n:'High alarm', f:'alarmHigh'}, {n:'Signal Health limit', f:'hlimit'}, {n:'Averaging (samples)', f:'avg'}, {n:'Start-up settle time', f:'startupMin'}, {n:'Input @ 4 mA  (-1000 mV)', f:'calVmin'}, {n:'Input @ 20 mA (+1000 mV)', f:'calVmax'} ]},
   {name:'Dosing (PID)', icon:'drop', feat:'pid', rows:[ {n:'Setpoint', f:'sp'}, {n:'Controller action', t:'dir'}, {n:'Manual dose output', f:'manout'}, {n:'Gain', f:'kp'}, {n:'Integral time', f:'ti'}, {n:'Output minimum', f:'outMin'}, {n:'Output maximum', f:'outMax'}, {n:'Mode at power-up', t:'pwrup'}, {n:'Power-up manual output', f:'pwrupOut', vis:()=>S.pwrup===0} ]},
   {name:'Cleaning', icon:'refresh', feat:'clean', rows:[ {n:'Interval (0 = off)', f:'cleanIntHr'}, {n:'Flush time', f:'flushS'}, {n:'Recover time', f:'recovS'} ]},
   {name:'Inputs & outputs', icon:'io', rows:[ {n:'Digital input 1', t:'di1'}, {n:'Input 1 active when', t:'di1pol', vis:()=>S.di1Func!==0}, {n:'Digital input 2', t:'di2'}, {n:'Input 2 active when', t:'di2pol', vis:()=>S.di2Func!==0}, {n:'Diagnostic relay', t:'frelay'}, {n:'Alarm relays', t:'arelay'}, {n:'Reading output module', t:'rtmod'}, {n:'Reading out @ 4 mA', f:'dac4'}, {n:'Reading out @ 20 mA', f:'dac20'}, {n:'Dose out @ 4 mA', f:'dose4'}, {n:'Dose out @ 20 mA', f:'dose20'} ]},
@@ -1043,6 +1049,7 @@ const FIELD = {
   alarmLow:{title:'Low alarm', hint:()=>fmtSc(-1000,false)+' to '+fmtSc(1000,true), get:()=>fmtSc(S.alarmLow,true), set:v=>{S.alarmLow=clamp(v*S.dispDiv,-1000,1000);}},
   alarmHigh:{title:'High alarm', hint:()=>fmtSc(-1000,false)+' to '+fmtSc(1000,true), get:()=>fmtSc(S.alarmHigh,true), set:v=>{S.alarmHigh=clamp(v*S.dispDiv,-1000,1000);}},
   avg:{title:'Averaging (samples)', hint:'1 - 1000', get:()=>S.avg, set:v=>{S.avg=clamp(Math.round(v),1,1000);}},
+  startupMin:{title:'Start-up settle time, min', hint:'0 - 180  (0 = off). Alarms off and controller held after power-up and after flow returns', get:()=>S.startupMin>0?S.startupMin+' min':'Off', set:v=>{S.startupMin=clamp(Math.round(v),0,180); if(S.startupHold||S.startupMin===0){S.startupUntil=S.t+S.startupMin*60; S.startupHold=S.startupMin>0;}}},
   calVmin:{title:'Input @ 4 mA  (-1000 mV)', hint:'volts at the A0 pin (0 - 3.3)', get:()=>S.calVmin.toFixed(3), set:v=>{S.calVmin=clamp(v,0,3.3);}},
   calVmax:{title:'Input @ 20 mA  (+1000 mV)', hint:'volts at the A0 pin (0 - 3.3)', get:()=>S.calVmax.toFixed(3), set:v=>{S.calVmax=clamp(v,0,3.3);}},
   dac4:{title:'Reading out @ 4 mA', hint:'DAC counts 0 - 4095 (meter on the reading loop)', get:()=>S.dac4, set:v=>{S.dac4=clamp(Math.round(v),0,4095);}, live:v=>'Loop meter: '+(4+16*clamp(v,0,4095)/4095*1.0).toFixed(2)+' mA (simulated)'},
@@ -1077,7 +1084,7 @@ function buildMenu(){
     r.onclick=()=>{ if (G.screen){ show(G.screen); return; } if (G.help){ $('help').classList.add('on'); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
     m.appendChild(r);
   });
-  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.60</span>'; m.appendChild(fw);
+  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.62</span>'; m.appendChild(fw);
 }
 function groupVisible(i){ const G=GROUPS[i]; return !(G.feat==='pid'&&!S.featPid) && !(G.feat==='clean'&&!S.featClean); }
 function renderConfig(){
