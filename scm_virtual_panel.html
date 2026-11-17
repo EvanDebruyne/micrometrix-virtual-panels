@@ -224,7 +224,7 @@ html.bare .bezel{border-radius:0;box-shadow:none}
 <div class="wrap">
   <div class="head">
     <h1>SCM Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.70. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.71. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -936,7 +936,7 @@ function cfgSay(ok,msg){ S.cfgIo=msg; S.cfgIoOk=ok; S.cfgIoAt=performance.now();
 function cfgExport(){
   if (!S.usb){ cfgSay(false,'No USB stick'); return; }
   const fmt=(v,p)=> p==='b' ? (v?1:0) : p ? (+v).toFixed(p) : Math.round(v);
-  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.70, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
+  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.71, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
   CFG_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[4])));
   rows.push('','# Calibration of the sensor input and the 4-20 mA outputs. Import applies','# these too; Service > Factory reset restores the built-in values.');
   CAL_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
@@ -1032,11 +1032,11 @@ const GROUPS = [
     {n:'A1', w:['Sensor sine wave (Signal Health)','Probe waveform: Scope plot and flush grade']},
     {n:'A2', w:['Drive square wave (Signal Health)','Motor reference: RPM, phase, pulse width']},
     {n:'D2 / D3', w:['TM1637 LED readout: CLK D2, DIO D3','Backup 4-digit display. Two-wire, not I2C']},
-    {n:'D4', w:['Digital input 2: dry contact to GND','Volt-free only. Set in Inputs & outputs']},
     {n:'D5', w:['Digital input 1: dry contact to GND','Flow switch, hold, clean or AUTO']},
     {n:'D6', w:['Diagnostic relay','Fault / health / no flow / cal due']},
     {n:'D7', w:['Flush valve relay','Energised during the FLUSH phase only']},
     {n:'D8', w:['High alarm relay','On alarm or fail-safe (Inputs & outputs)']},
+    {n:'D9', w:['Digital input 2: dry contact to GND','Volt-free only. Set in Inputs & outputs']},
     {n:'D12', w:['Low alarm relay','Same sense setting as the high relay']},
     {n:'D20 / D21', w:['I2C bus: SDA on D20, SCL on D21','One pull-up pair; modules and clock share it']},
     {n:'I2C 0x5C', w:['Reading output: GP8630N, 16-bit, 4-20 mA','New board, DIP 1-0-0. Reading to the plant']},
@@ -1088,7 +1088,7 @@ function buildMenu(){
     r.onclick=()=>{ if (G.screen){ show(G.screen); return; } if (G.help){ $('help').classList.add('on'); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
     m.appendChild(r);
   });
-  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.70</span>'; m.appendChild(fw);
+  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.71</span>'; m.appendChild(fw);
 }
 function groupVisible(i){ const G=GROUPS[i]; return !(G.feat==='pid'&&!S.featPid) && !(G.feat==='clean'&&!S.featClean); }
 function renderConfig(){
