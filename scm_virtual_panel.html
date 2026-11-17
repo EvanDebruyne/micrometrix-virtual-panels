@@ -224,7 +224,7 @@ html.bare .bezel{border-radius:0;box-shadow:none}
 <div class="wrap">
   <div class="head">
     <h1>SCM Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.71. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.74. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -936,7 +936,7 @@ function cfgSay(ok,msg){ S.cfgIo=msg; S.cfgIoOk=ok; S.cfgIoAt=performance.now();
 function cfgExport(){
   if (!S.usb){ cfgSay(false,'No USB stick'); return; }
   const fmt=(v,p)=> p==='b' ? (v?1:0) : p ? (+v).toFixed(p) : Math.round(v);
-  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.71, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
+  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.74, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
   CFG_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[4])));
   rows.push('','# Calibration of the sensor input and the 4-20 mA outputs. Import applies','# these too; Service > Factory reset restores the built-in values.');
   CAL_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
@@ -1024,7 +1024,7 @@ const GROUPS = [
   {name:'Sensor & alarms', icon:'bell', rows:[ {n:'Low alarm', f:'alarmLow'}, {n:'High alarm', f:'alarmHigh'}, {n:'Signal Health limit', f:'hlimit'}, {n:'Averaging (samples)', f:'avg'}, {n:'Start-up settle time', f:'startupMin'}, {n:'Input @ 4 mA  (-1000 mV)', f:'calVmin'}, {n:'Input @ 20 mA (+1000 mV)', f:'calVmax'} ]},
   {name:'Dosing (PID)', icon:'drop', feat:'pid', rows:[ {n:'Setpoint', f:'sp'}, {n:'Controller action', t:'dir'}, {n:'Manual dose output', f:'manout'}, {n:'Gain', f:'kp'}, {n:'Integral time', f:'ti'}, {n:'Output minimum', f:'outMin'}, {n:'Output maximum', f:'outMax'}, {n:'Mode at power-up', t:'pwrup'}, {n:'Power-up manual output', f:'pwrupOut', vis:()=>S.pwrup===0} ]},
   {name:'Cleaning', icon:'refresh', feat:'clean', rows:[ {n:'Interval (0 = off)', f:'cleanIntHr'}, {n:'Flush time', f:'flushS'}, {n:'Recover time', f:'recovS'} ]},
-  {name:'Inputs & outputs', icon:'io', rows:[ {n:'Digital input 1', t:'di1'}, {n:'Input 1 active when', t:'di1pol', vis:()=>S.di1Func!==0}, {n:'Digital input 2', t:'di2'}, {n:'Input 2 active when', t:'di2pol', vis:()=>S.di2Func!==0}, {n:'Diagnostic relay', t:'frelay'}, {n:'Alarm relays', t:'arelay'}, {n:'Reading output module', t:'rtmod'}, {n:'Reading out @ 4 mA', f:'dac4'}, {n:'Reading out @ 20 mA', f:'dac20'}, {n:'Dose out @ 4 mA', f:'dose4'}, {n:'Dose out @ 20 mA', f:'dose20'} ]},
+  {name:'Inputs & outputs', icon:'io', rows:[ {n:'Digital input 1', t:'di1'}, {n:'Input 1 active when', t:'di1pol', vis:()=>S.di1Func!==0}, {n:'Digital input 2', t:'di2'}, {n:'Input 2 active when', t:'di2pol', vis:()=>S.di2Func!==0}, {n:'Diagnostic relay', t:'frelay'}, {n:'Alarm relays', t:'arelay'}, {n:'Reading output module', t:'rtmod'}, {n:'Ethernet', t:'net'}, {n:'Reading out @ 4 mA', f:'dac4'}, {n:'Reading out @ 20 mA', f:'dac20'}, {n:'Dose out @ 4 mA', f:'dose4'}, {n:'Dose out @ 20 mA', f:'dose20'} ]},
   {name:'Display & clock', icon:'display', rows:[ {n:'Main readout', t:'mode'}, {n:'Display range', t:'range'}, {n:'Brightness', t:'bright'}, {n:'Date', f:'date'}, {n:'Time', f:'time'} ]},
   {name:'Service', icon:'wrench', screen:'service', rows:[]},
   {name:'Wiring', icon:'bolt', rows:[
@@ -1088,7 +1088,7 @@ function buildMenu(){
     r.onclick=()=>{ if (G.screen){ show(G.screen); return; } if (G.help){ $('help').classList.add('on'); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
     m.appendChild(r);
   });
-  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.71</span>'; m.appendChild(fw);
+  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.74</span>'; m.appendChild(fw);
 }
 function groupVisible(i){ const G=GROUPS[i]; return !(G.feat==='pid'&&!S.featPid) && !(G.feat==='clean'&&!S.featClean); }
 function renderConfig(){
@@ -1106,6 +1106,7 @@ function renderConfig(){
     else if (r.f){ v.textContent=FIELD[r.f].get(); d.onclick=()=>openEditor(r.f); }
     else switch(r.t){
       case 'rtmod': d.classList.add('ro'); v.textContent='GP8630N @ 0x5C'; v.style.color='#8B98A9'; break;
+      case 'net': d.classList.add('ro'); v.textContent='192.168.50.2  connected'; v.style.color='#4ADE80'; break;   // 0.9.74: the demo unit has the shield and a master
       case 'mode': v.textContent=S.showAbs?'Absolute':'Relative'; d.onclick=()=>{S.showAbs=!S.showAbs;renderConfig();}; break;
       case 'range': v.textContent=S.dispDiv===100?'+/-10.00':S.dispDiv===10?'+/-100.0':'+/-1000 mV'; d.onclick=()=>{S.dispDiv=S.dispDiv===1?10:S.dispDiv===10?100:1;renderConfig();}; break;
       case 'bright': { d.classList.add('ro'); const w=document.createElement('span'); w.className='slider'; const inp=document.createElement('input'); inp.type='range'; inp.min=10; inp.max=100; inp.value=S.bright; inp.id='brightSl'; const lab=document.createElement('span'); lab.className='v'; lab.textContent=S.bright+' %'; inp.oninput=()=>{S.bright=+inp.value; lab.textContent=S.bright+' %'; applyBright();}; w.appendChild(inp); w.appendChild(lab); d.appendChild(w); box.appendChild(d); return; }
