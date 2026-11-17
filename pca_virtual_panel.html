@@ -103,7 +103,7 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
 #home .unit{position:absolute;right:0;top:0;line-height:34px;font-size:28px;color:#8B98A9}
 #home .brow{height:76px;display:flex;gap:10px;flex:none}
 #home .brow .btn{height:100%;font-size:28px;font-weight:500}
-/* Manual Titration (0.9.42): the Titrate chart plus Start/Stop, Prime, 1 Drop, Dose */
+/* Manual Titration (0.9.42): the Titrate chart plus Start/Stop, Prime, 1 drop, Dose */
 #manual{gap:8px}
 #manual .tiles{height:84px;gap:8px}
 #manual .tcard{flex:1;position:relative;padding:12px;min-height:0}
@@ -238,12 +238,20 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
 #hist .empty{position:absolute;left:52px;right:0;top:95px;text-align:center;font-size:28px;color:#8B98A9}
 #toast{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);background:#22D3EE;color:#0B0F14;font-size:20px;padding:8px 18px;border-radius:10px;display:none;white-space:nowrap}
 @media (prefers-reduced-motion: reduce){ .caldue{transition:none} }
+.seg{display:flex;gap:6px}
+.seg span{padding:0 14px;height:40px;line-height:40px;border-radius:8px;background:#0B0F14;color:#8B98A9;font-size:22px;border:1px solid #3A4656;cursor:pointer;white-space:nowrap}
+.seg span.on{background:#22D3EE;color:#0B0F14;border-color:#22D3EE}
+#svStrip{display:flex;align-items:center;gap:16px;height:52px;flex:none;margin-bottom:10px}
+#svStrip .ct{font-size:28px;color:#E6EDF3;flex:1}
+#svStrip .btn{height:52px;line-height:52px;padding:0 18px}
+#svActs{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-top:10px}
+#service .dcard{flex:none}
 </style>
 
 <div class="wrap">
   <div class="head">
     <h1>PCA Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.54. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.58. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -278,8 +286,8 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
                   <div class="ftr"><div class="state" id="hState">Ready</div><div class="rawl" id="hRaw"></div><div class="unit">mV</div></div>
                 </div>
                 <div class="brow">
-                  <div class="btn ink" id="bTitr" style="flex:2;background:#4ADE80">Manual Titration</div>
-                  <div class="btn ink" id="bHAuto" style="flex:2;background:#22D3EE">Auto Titrate</div>
+                  <div class="btn ink" id="bTitr" style="flex:2;background:#4ADE80">Manual titration</div>
+                  <div class="btn ink" id="bHAuto" style="flex:2;background:#22D3EE">Auto titrate</div>
                   <div class="btn" id="bZero" style="flex:1">ZERO</div>
                 </div>
               </div>
@@ -300,13 +308,13 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
                   <div class="axl" id="mY0" style="color:#22D3EE">0</div>
                   <div class="axl" id="mYb">-100</div>
                   <div class="axl" id="mXe"></div>
-                  <div class="tempty" id="mEmpty">Prime if needed, then Start Titration or add a drop</div>
+                  <div class="tempty" id="mEmpty">Prime if needed, then Start titration or add a drop</div>
                   <div class="tstat" id="mStat"></div>
                 </div>
                 <div class="brow">
-                  <div class="btn ink" id="bMRun" style="flex:6;background:#4ADE80">Start Titration</div>
+                  <div class="btn ink" id="bMRun" style="flex:6;background:#4ADE80">Start titration</div>
                   <div class="btn" id="bMPrime" style="flex:3">Prime</div>
-                  <div class="btn sbtn" id="bMDrop" style="flex:4"><div class="n">1 Drop</div><div class="s" id="mDropUl">12.5 uL</div></div>
+                  <div class="btn sbtn" id="bMDrop" style="flex:4"><div class="n">1 drop</div><div class="s" id="mDropUl">12.5 uL</div></div>
                   <div class="btn sbtn" id="bMDose" style="flex:4"><div class="n" id="mDoseN">Dose</div><div class="s" id="mDoseUl"></div></div>
                 </div>
               </div>
@@ -329,7 +337,7 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
                   <div class="tempty" id="tEmpty">Start a titration on Home</div>
                   <div class="tstat" id="tStat">Idle</div>
                 </div>
-                <div class="arow"><div class="vbtn" id="bMode"><div class="cap">Mode</div><div class="val" id="tMode">Normal</div></div><div class="btn ink abtn" id="bAuto" style="background:#22D3EE">Auto Titrate</div></div>
+                <div class="arow"><div class="vbtn" id="bMode"><div class="cap">Mode</div><div class="val" id="tMode">Normal</div></div><div class="btn ink abtn" id="bAuto" style="background:#22D3EE">Auto titrate</div></div>
               </div>
 
               <!-- SCOPE -->
@@ -357,7 +365,7 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
                   <div class="drow"><span class="n">Exported as</span><span class="v" id="fiFile">not yet</span></div>
                   <div class="drow"><span class="n">Stored on unit</span><span class="v" id="fiStore">-</span></div>
                 </div>
-                <div class="status" id="fiUsb">USB: drive ready</div>
+                <div class="status" id="fiUsb">USB connected</div>
                 <div id="fiBar" style="display:none;height:14px;border-radius:7px;background:#253041;overflow:hidden;flex:none"><div id="fiBarIn" style="height:100%;width:0;background:#22D3EE;border-radius:7px"></div></div>
                 <div class="status" id="fiStatus" style="margin-top:-8px"></div>
                 <div class="frow">
@@ -391,17 +399,17 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
                 </div>
                 <div class="pu-cap"><b>DOSE</b><span>Add titrant by hand: a drop, a dose, or one motor step.</span></div>
                 <div class="pu-row">
-                  <div class="btn ink" id="pDrop" style="flex:5;background:#22D3EE">1 Drop</div>
+                  <div class="btn ink" id="pDrop" style="flex:5;background:#22D3EE">1 drop</div>
                   <div class="btn ink" id="pDose" style="flex:4;background:#4ADE80">Dose</div>
-                  <div class="btn" id="pStep" style="flex:5">1 Step</div>
+                  <div class="btn" id="pStep" style="flex:5">1 step</div>
                   <div class="vbtn" data-f="ulDrop" style="flex:5"><div class="cap">Drop uL</div><div class="val" id="puDrop">--</div></div>
                   <div class="vbtn" data-f="doseUl" style="flex:5"><div class="cap">Dose uL</div><div class="val" id="puDose">--</div></div>
                   <div class="vbtn" data-f="flow" style="flex:7"><div class="cap">Rate uL/min</div><div class="val" id="puFlow">--</div></div>
                 </div>
-                <div class="pu-cap"><b>CALIBRATE</b><span>Reset, Cal Run into a weighed cup, then Enter mL.</span></div>
+                <div class="pu-cap"><b>CALIBRATE</b><span>Reset, Cal run into a weighed cup, then Enter mL.</span></div>
                 <div class="pu-row">
                   <div class="btn" id="pReset" style="flex:5">Reset</div>
-                  <div class="btn" id="pCal" style="flex:6">Cal Run</div>
+                  <div class="btn" id="pCal" style="flex:6">Cal run</div>
                   <div class="vbtn" data-f="calFlow" style="flex:7"><div class="cap">Flow uL/min</div><div class="val" id="puCFlow">--</div></div>
                   <div class="btn" id="pEnterMl" style="flex:7">Enter mL</div>
                   <div class="vbtn" data-f="ulStepCfg" style="flex:6"><div class="cap">uL/step</div><div class="val" id="puCal">--</div></div>
@@ -414,22 +422,18 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
 
               <!-- SERVICE -->
               <div class="scr" id="service">
+                <div id="svStrip"><div class="btn" id="svBack">&#8249;&nbsp;&nbsp;Back</div><span class="ct">Service &amp; Calibration</span><div class="btn" id="svUnlock">Unlock</div></div>
                 <div class="card dcard">
-                  <div class="dcap">Calibration reminder</div>
                   <div class="drow"><span class="n">Status</span><span class="v" id="svState">-</span></div>
                   <div class="drow"><span class="n">Last calibrated</span><span class="v" id="svLast">-</span></div>
                   <div class="drow" id="svIntRow" style="cursor:pointer;border-radius:8px"><span class="n">Interval</span><span class="v" id="svInt">-</span></div>
                 </div>
                 <div class="status" id="svMsg"></div>
-                <div class="srow">
-                  <div class="btn" id="svUnlock">Unlock</div>
-                  <div class="btn g" id="svMark">&#10003;&nbsp; Mark calibrated</div>
-                  <div class="btn g" id="svZero">Clear zero</div>
-                </div>
-                <div class="srow">
-                  <div class="btn" id="svPump">Pump &nbsp;&#8250;</div>
-                  <div class="btn g" id="svPin">Change PIN</div>
-                  <div class="btn g" id="svReset" style="color:#F87171">Factory reset</div>
+                <div id="svActs">
+                  <div class="crow2" id="svMark"><span class="n">Mark calibrated</span><span class="v" style="color:#8B98A9">today</span></div>
+                  <div class="crow2" id="svZero"><span class="n">Clear zero</span><span class="v" id="svZeroV" style="color:#8B98A9">-</span></div>
+                  <div class="crow2" id="svPin"><span class="n">Change PIN</span><span class="v">&#8250;</span></div>
+                  <div class="crow2" id="svReset"><span class="n" style="color:#F87171">Factory reset</span><span class="v" style="color:#F87171">&#8250;</span></div>
                 </div>
               </div>
             </div>
@@ -454,7 +458,7 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
             </div>
             <div class="modal" id="help">
               <div class="card dlg">
-                <div class="hh"><div class="t">Device Manual</div><div class="btn x" id="helpX">&#10005;</div></div>
+                <div class="hh"><div class="t">Device manual</div><div class="btn x" id="helpX">&#10005;</div></div>
                 <div style="width:240px;height:240px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center"><svg width="232" height="232"><g transform="scale(8)"><path fill="#fff" d="M0 0h29v29h-29z"/><path class="qrline" stroke="#000" d="M2 2.5h7m4 0h1m1 0h1m4 0h7m-25 1h1m5 0h1m1 0h1m1 0h1m3 0h1m1 0h1m1 0h1m5 0h1m-25 1h1m1 0h3m1 0h1m1 0h3m4 0h1m2 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m1 0h4m1 0h4m1 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m2 0h1m1 0h3m2 0h1m1 0h1m1 0h3m1 0h1m-25 1h1m5 0h1m6 0h2m1 0h1m1 0h1m5 0h1m-25 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-17 1h1m2 0h1m4 0h1m-17 1h1m5 0h1m1 0h1m2 0h1m1 0h2m2 0h2m2 0h3m-23 1h1m1 0h1m3 0h1m6 0h2m1 0h1m1 0h5m-24 1h1m1 0h1m1 0h3m1 0h1m2 0h3m1 0h2m1 0h2m1 0h1m1 0h2m-25 1h1m2 0h1m1 0h1m2 0h1m2 0h1m2 0h1m1 0h3m2 0h1m2 0h1m-25 1h1m1 0h1m1 0h5m2 0h2m3 0h1m1 0h2m4 0h1m-25 1h2m1 0h1m5 0h1m2 0h2m1 0h3m1 0h1m3 0h1m-24 1h1m3 0h1m1 0h1m3 0h1m2 0h9m1 0h2m-25 1h1m4 0h1m1 0h1m4 0h1m4 0h3m1 0h2m1 0h1m-25 1h1m2 0h5m1 0h1m2 0h9m1 0h1m-15 1h4m1 0h1m1 0h2m3 0h1m-21 1h7m2 0h1m1 0h1m1 0h1m2 0h1m1 0h1m1 0h1m3 0h1m-25 1h1m5 0h1m2 0h1m1 0h2m1 0h3m3 0h1m-21 1h1m1 0h3m1 0h1m2 0h2m1 0h2m1 0h6m1 0h1m-23 1h1m1 0h3m1 0h1m3 0h2m1 0h3m1 0h2m4 0h2m-25 1h1m1 0h3m1 0h1m5 0h4m5 0h2m1 0h1m-25 1h1m5 0h1m3 0h1m1 0h1m1 0h3m1 0h3m3 0h1m-25 1h7m1 0h1m1 0h2m4 0h1m1 0h1m2 0h1m2 0h1"/></g></svg></div>
               </div>
             </div>
@@ -483,15 +487,15 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
         <div class="box">
           <h2>Try this</h2>
           <ol class="steps">
-            <li>Open <b>Titrate</b>, tap <b>Auto Titrate</b> and <b>Confirm</b>. Watch the opening dose, the settling after each dose, and the doses shrinking as the reading closes on zero. Set speed to &times;10 on the right to watch a whole run in a few seconds.</li>
+            <li>Open <b>Titrate</b>, tap <b>Auto titrate</b> and <b>Confirm</b>. Watch the opening dose, the settling after each dose, and the doses shrinking as the reading closes on zero. Set speed to &times;10 on the right to watch a whole run in a few seconds.</li>
             <li>When it ends, open <b>Files</b>: the run is already stored on the unit. Press <b>Export run</b> to copy it to the stick (or <b>Export all</b> for every stored run), then tap it in the file list on the right to read the CSV.</li>
             <li>Set <b>Titrant bottle: Empty</b> and run again. The pump turns but nothing arrives, and after eight doses (and at least a tenth of Max titrant) that together move it less than 3 mV the titrator stops with <b>No response</b>.</li>
             <li>During a run, set <b>Sensor: Cable cut</b>. The run ends, Home shows <b>----</b> and <b>SENSOR FAULT</b>, and Start, Auto and ZERO are dimmed until the cable is back.</li>
             <li>Tap the yellow <b>RELATIVE</b> chip on Home to switch to the absolute reading. The small grey line under it is the other one.</li>
             <li>On <b>Files</b>, press <b>Export configuration</b> and open <code>PCA_Config.txt</code> on the right: every setting as plain text. Change a setting, then <b>Import configuration</b> puts it back.</li>
-            <li>Tap <b>Mode</b> beside Auto Titrate to choose <b>Cautious</b>, <b>Normal</b> or <b>Aggressive</b>, then run the same sample again (tap the sample button for a fresh one): fewer, bigger doses and shorter waits, or more, smaller ones.</li>
-            <li>Set <b>Pump motor supply: Off</b> and press <b>1 Drop</b> on the Pump page: the steps count but nothing reaches the sample. Turn on <b>Config &rarr; Pump &rarr; Power sense</b> and the page says <b>NO POWER</b> and refuses instead.</li>
-            <li>Press <b>Make calibration due</b>. Tap the flashing <b>CAL DUE</b> badge, unlock with PIN <b>1234</b>, then <b>Mark calibrated</b>. The same PIN guards <b>Config &rarr; Sensor &rarr; Input @ 4 mA</b>.</li>
+            <li>Tap <b>Mode</b> beside Auto titrate to choose <b>Cautious</b>, <b>Normal</b> or <b>Aggressive</b>, then run the same sample again (tap the sample button for a fresh one): fewer, bigger doses and shorter waits, or more, smaller ones.</li>
+            <li>Set <b>Pump motor supply: Off</b> and press <b>1 drop</b> on the Pump page: the steps count but nothing reaches the sample. Turn on <b>Config &rarr; Pump &rarr; Power sense</b> and the page says <b>NO POWER</b> and refuses instead.</li>
+            <li>Press <b>Make calibration due</b>. Tap the flashing <b>CAL DUE</b> badge, unlock with the demo PIN <b>0000</b>, then <b>Mark calibrated</b>. The same PIN guards <b>Config &rarr; Sensor &rarr; Input @ 4 mA</b>.</li>
           </ol>
         </div>
         <div class="box">
@@ -570,10 +574,10 @@ function fit(){ const s = stage.clientWidth/800; dev.style.transform = 'scale('+
 new ResizeObserver(fit).observe(stage); fit();
 
 // ------------------------------------------------------------------ firmware constants (PCA 0.9.21)
-const FW = '0.9.54';
+const FW = '0.9.58';
 const DEF = { zero:0, gain:1.00, avg:32, showAbs:false, showRaw:false, calVmin:0.478, calVmax:2.340,
   sps:800, doseSteps:9690, ulStep:0.0258, ulDrop:12.5, primeSps:2000, primeTo:600,
-  band:2.5, target:0, expectUl:0, lastUl:0, lastMl:0, sampleMl:0, stableWin:15, stableMv:3.0, approach:0.80, settle:10, maxDrops:20, openDrops:5, maxMl:10.0, bright:80, calInt:90, pin:'1234', pPowerSense:false, calSps:1500 };
+  band:2.5, target:0, expectUl:0, lastUl:0, lastMl:0, sampleMl:0, titrant:0, titrantMeq:1.0, stableWin:15, stableMv:3.0, approach:0.80, settle:10, maxDrops:20, openDrops:5, maxMl:10.0, bright:80, calInt:90, pin:'0000', pPowerSense:false, calSps:1500 };   // the demo's own PIN - deliberately NOT the factory PIN, this page is public
 const TRUE_UL_STEP = 0.0258;         // what the simulated pump really moves per step
 const DT = 0.25;                     // the firmware's 250 ms reading / titrator tick
 const RESPONSE_MV = 3.0, AT_MAX_STEPS = 200, AT_NO_RESPONSE_DOSES = 8, AT_NO_RESPONSE_MAX_FRAC = 0.10, AT_STEEP_RATIO = 3, AT_STEEPEN_RATIO = 1.5, AT_STEEP_CAP_FRAC = 0.25, AT_RAMP_FACTOR = 1.5;   // 3 until 0.9.32, 5 until 0.9.40
@@ -595,10 +599,15 @@ function atModeNext(){ if (atRunning()){ S.atStatus='Mode can be changed when th
              : m===1 ? 'Normal: a few doses, small chance of going past zero'
              : m===2 ? 'Aggressive: fewest doses, fastest - for samples that answer quickly'
              : 'Custom: '+Math.round(M.approach*100)+'% of the remaining volume per dose, up to '+M.maxDrops+' drops, '+M.settle+' s wait'; }
+const TITRANT_KINDS=[{name:'PolyDADMAC',cationic:true},{name:'PVSK',cationic:false},{name:'Other cationic',cationic:true},{name:'Other anionic',cationic:false}];   // 0.9.55
+function titrantName(){ return TITRANT_KINDS[S.titrant%4].name; }
+function titrantCationic(){ return TITRANT_KINDS[S.titrant%4].cationic; }
+function chargeUeqL(ul){ if (!(ul>0) || !(S.sampleMl>0) || !(S.titrantMeq>0)) return 0; const c=ul*S.titrantMeq/S.sampleMl; return titrantCationic()?-c:c; }
+function titrantNext(){ S.titrant=(S.titrant+1)%4; dirty(); S.atStatus='Titrant: '+titrantName()+' ('+(titrantCationic()?'cationic':'anionic')+') at '+S.titrantMeq.toFixed(2)+' meq/L - results in ueq/L need Sample volume'; }
 function atLastOffer(){ if (S.lastUl<=0) return 0; return (S.sampleMl>0 && S.lastMl>0) ? S.lastUl*S.sampleMl/S.lastMl : S.lastUl; }   // 0.9.53
 const TITR_MAX = 600, TITR_MIN_S = 3, OVERSHOOT_S = 2, NEUTRAL = 5;
 const FAULT_MV = -1050, CLEAR_MV = -1025, FAULT_HOLD = 0.5;
-const CAL_STEPS = 50000;   // Cal Run rate is a setting since 0.9.29 (calSps)
+const CAL_STEPS = 50000;   // Cal run rate is a setting since 0.9.29 (calSps)
 const PUMP_MAX_SPS = 4000;   // 0.9.27: back from 8000 - no need, and the motor gets hot
 const STORE_KB = 7168, BLOCK = 4096, RESERVE_KB = 512;
 const AT = { IDLE:0, BASE:1, DOSING:2, SETTLE:3, DONE:4, ABORT:5 };
@@ -610,7 +619,7 @@ const TO_NAME = ['IN_PROGRESS','ENDPOINT_BAND','ENDPOINT_CROSSED','ENDPOINT_DROP
   'STOPPED_OPERATOR','BUFFER_FULL','ABORT_SENSOR_FAULT','ABORT_PUMP_POWER'];
 const TF = { PHASE:0x07, DOSE:0x08, SETTLED:0x10, CLIPPED:0x20, MANUAL:0x40 };
 const PH_NAME = ['IDLE','BASE','DOSE','SETL','DONE'];
-const RESULTS_HEADER = 'Date,Start_time,Run_id,Mode,Outcome,Result_status,Titrant_uL,Titrant_mL,Duration_s,Auto_doses,File';
+const RESULTS_HEADER = 'Date,Start_time,Run_id,Mode,Outcome,Result_status,Titrant_uL,Titrant_mL,Duration_s,Auto_doses,Titrant,Sample_mL,Charge_ueq_L,File';   // 0.9.55
 const SAMPLE = { anionic:{r:-212, spread:60, slope:0.19}, cationic:{r:185, spread:50, slope:0.17}, neutral:{r:-3, spread:1.5, slope:0.2},
   // polyelectrolyte (S-curve), after the real DADMAC run of 2026-10-09: nearly flat for ~200 uL, then steep, slow to mix
   polymer:{r:-333, spread:20, slope:0, eq:300, w:18, top:110, tau:25},
@@ -644,7 +653,7 @@ function fresh(){
     calLast: now - 23*86400, unlockedUntil:0, fails:0, lockoutUntil:0, svcStatus:'', afterUnlock:null,
     // Signal Health
     health:{valid:false, h:0, rpm:0, vpp:0, phase:50}, hist:[], per:null,
-    cfgGroup:-1, fiRuns:false, cfgIo:'', lastSec:now, atCustom:null
+    cfgGroup:-1, fiRuns:false, cfgIo:'', cfgIoOk:false, cfgIoAt:0, lastSec:now, atCustom:null
   });
 }
 
@@ -841,7 +850,9 @@ function titrFinalize(outcome, reason){
     S.lastUl=R.endpointUl; S.lastMl=S.sampleMl; }
   atStopForRunEnd();
   R.active = false; R.lastT = S.t; S.haveRun = R.count>0;
-  S.titrStatus = reason+' - '+R.count+' pts, '+Math.floor(R.lastT - R.startT)+'s';
+  { const ch=chargeUeqL(R.endpointUl);   // 0.9.55
+    S.titrStatus = ch!==0 ? reason+' - '+R.endpointUl.toFixed(0)+' uL = '+(ch>0?'+':'')+ch.toFixed(1)+' ueq/L, '+Math.floor(R.lastT - R.startT)+'s'
+                          : reason+' - '+R.count+' pts, '+Math.floor(R.lastT - R.startT)+'s'; }
   runStoreFinished();
 }
 function resultStatus(o){
@@ -1049,6 +1060,7 @@ function runCsv(R){
   L.push('Doses_settled,'+R.settledN,'Doses_predicted,'+R.predictedN,'Response_onset_s,'+R.onsetS);   // 0.9.52
   L.push('Expected_source,'+(R.expectSrc===2?'LAST_RESULT':R.expectSrc===1?'SETTING':'NONE'),'AT_last_result_uL,'+S.lastUl.toFixed(1));
   L.push('Sample_mL,'+S.sampleMl.toFixed(1),'Endpoint_interpolated_uL,'+(inProg?0:(R.endpointUl||0)).toFixed(1),'Result_uL_per_mL,'+((S.sampleMl>0&&!inProg)?(R.endpointUl||0)/S.sampleMl:0).toFixed(3));   // 0.9.53
+  { const ch=inProg?0:chargeUeqL(R.endpointUl||0); L.push('Titrant,'+titrantName(),'Titrant_polarity,'+(titrantCationic()?'CATIONIC':'ANIONIC'),'Titrant_meq_L,'+S.titrantMeq.toFixed(3),'Charge_ueq_L,'+ch.toFixed(1),'Charge_reported,'+(ch!==0?'YES':'NO')); }   // 0.9.55
   S.at.log.forEach((d,i)=>L.push('Dose_'+(i+1)+',at='+d.tDose+'s uL='+d.ul.toFixed(1)+' judged='+d.tJudge+'s how='+AT_HOW[d.how]+' r='+d.r.toFixed(1)+' final='+d.final.toFixed(1)+' gain='+d.gain.toFixed(4)));
   L.push('Pump_idle_before_run_s,'+R.idleBefore,'Pump_primed_since_boot,YES');
   L.push('','Second,mV,Titrant_uL,Titrant_mL,Phase,Dose,Settled,Clipped,Manual');
@@ -1075,7 +1087,7 @@ function runStoreFinished(){
   const name = baseName(R)+'.csv', text = runCsv(R);
   S.unit[name] = text; S.saveFailed=false;
   S.results.push(dateStr(R.startT)+','+timeStr(R.startT,true)+','+R.seq+','+((R.autoSteps||0)>0?'AUTO':'MANUAL')+','+TO_NAME[R.outcome]+','+resultStatus(R.outcome)+','
-    +R.titrant.toFixed(1)+','+(R.titrant/1000).toFixed(4)+','+Math.floor(R.lastT-R.startT)+','+(R.autoSteps||0)+','+name);
+    +R.titrant.toFixed(1)+','+(R.titrant/1000).toFixed(4)+','+Math.floor(R.lastT-R.startT)+','+(R.autoSteps||0)+','+titrantName()+','+S.sampleMl.toFixed(1)+','+chargeUeqL(R.endpointUl||0).toFixed(1)+','+name);
   // the stick is written only on request since 0.9.37 (the SCM's 0.9.48): no copy here
   if (!S.seeding) renderFileLists(S.usbIn ? {where:'usb',name} : {where:'unit',name});
 }
@@ -1083,7 +1095,7 @@ function exportRun(){
   if (S.exp){ S.titrStatus='An export is already running'; return; }
   const R=S.run;
   if (!R || R.count<=0){ S.titrStatus='No run to export'; return; }
-  if (!S.usbIn){ S.titrStatus='No USB drive detected'; return; }
+  if (!S.usbIn){ S.titrStatus='No USB stick'; return; }
   const name=baseName(R)+'.csv'; S.usb[name]=runCsv(R); S.lastName=name; S.titrStatus='Saved '+name+'. Safe to remove the stick.';
   renderFileLists({where:'usb',name});
 }
@@ -1092,7 +1104,7 @@ function exportRun(){
 function exportAll(){
   if (S.exp){ S.titrStatus='An export is already running'; return; }
   if (S.run && S.run.active){ S.titrStatus='Not during a titration'; return; }
-  if (!S.usbIn){ S.titrStatus='No USB drive detected'; return; }
+  if (!S.usbIn){ S.titrStatus='No USB stick'; return; }
   const names=runNames();
   S.exp={names, i:0, copied:0, skipped:0, bt:names.reduce((a,n)=>a+S.unit[n].length,0)||1, bd:0};
   S.titrStatus='Copying runs... 0 of '+names.length;
@@ -1192,7 +1204,7 @@ const GUARDED = { calVmin:1, calVmax:1, ulStepCfg:1, calMl:1, ulDrop:1 };
 let blink=false;
 const mctx=document.createElement('canvas').getContext('2d');
 function measure(txt,px,w){ mctx.font=(w||400)+' '+px+'px Montserrat, Arial'; return mctx.measureText(txt).width; }
-const TITLE={home:'Particle Charge Analyzer',manual:'Manual Titration',titrate:'Titration',scope:'Signal Health',files:'File Utilities',config:'Configuration',pump:'Dosing Pump',service:'Service & Calibration'};
+const TITLE={home:'Particle Charge Analyzer',manual:'Manual titration',titrate:'Titration',scope:'Signal Health',files:'File Utilities',config:'Configuration',pump:'Dosing Pump',service:'Service & Calibration'};
 function renderTop(){
   $('clock').textContent=timeStr(S.t,true);
   const cs=calStatus(), cd=$('caldue'), tt=$('scrTitle'), x=178+measure('PCA Model 247',20,500)+14;
@@ -1225,7 +1237,7 @@ function renderHome(){
   else if (S.haveRun && S.run){ const x=tm(S.run.lastT); st.textContent='Last test:  '+pad2(x.mo)+'-'+pad2(x.d)+' '+pad2(x.h)+':'+pad2(x.mi); st.style.color='#8B98A9'; }
   else { st.textContent='Ready'; st.style.color='#8B98A9'; }
   const run=atRunning(), locked=S.fault || pMissing();
-  const ha=$('bHAuto'); ha.textContent=run?'STOP':'Auto Titrate'; ha.style.background=run?'#F87171':'#22D3EE';
+  const ha=$('bHAuto'); ha.textContent=run?'STOP':'Auto titrate'; ha.style.background=run?'#F87171':'#22D3EE';
   $('bTitr').classList.toggle('dis', S.fault); $('bZero').classList.toggle('dis', S.fault);
   ha.classList.toggle('dis', locked); $('bAuto').classList.toggle('dis', locked);
 }
@@ -1239,7 +1251,7 @@ function renderManual(){
   if (S.pRun){ pt.textContent = S.pCont ? (S.pDir>0?'PRIMING':'REVERSE') : 'DOSING'; pt.style.color = S.pDir>0?'#4ADE80':'#FBBF24'; }
   else if (pMissing()){ pt.textContent='NO POWER'; pt.style.color='#F87171'; }
   else { pt.textContent='Idle'; pt.style.color='#8B98A9'; }
-  const rb=$('bMRun'); rb.textContent=active?'Stop Titration':'Start Titration'; rb.style.background=active?'#F87171':'#4ADE80'; rb.classList.toggle('dis', S.fault);
+  const rb=$('bMRun'); rb.textContent=active?'Stop titration':'Start titration'; rb.style.background=active?'#F87171':'#4ADE80'; rb.classList.toggle('dis', S.fault);
   const priming=S.pRun && S.pCont, dosing=S.pRun && !S.pCont && !run;
   const pb=$('bMPrime'); pb.textContent=priming?'STOP':'Prime'; pb.style.background=priming?'#F87171':''; pb.style.color=priming?'#0B0F14':'';
   $('mDropUl').textContent=S.ulDrop.toFixed(1)+' uL';
@@ -1291,7 +1303,7 @@ function renderTitrate(){
   $('tEl').textContent = R ? mmss((active?S.t:R.lastT)-R.startT) : '--';
   $('tVol').textContent = R ? R.titrant.toFixed(0) : '0';
   $('tDoses').textContent = S.at.steps;
-  const ab=$('bAuto'), run=atRunning(); ab.textContent=run?'STOP':'Auto Titrate'; ab.style.background=run?'#F87171':'#22D3EE';
+  const ab=$('bAuto'), run=atRunning(); ab.textContent=run?'STOP':'Auto titrate'; ab.style.background=run?'#F87171':'#22D3EE';
   $('tMode').textContent=atModeName(atMode()); $('bMode').classList.toggle('dis', run);
   const ts=$('tStat'); ts.textContent = (run && S.at.slope!==0) ? S.atStatus+'   (slope '+(S.at.slope*1000).toFixed(3)+' mV/mL)' : S.atStatus;
   ts.style.color = S.at.state===AT.DONE ? '#4ADE80' : S.at.state===AT.ABORT ? '#FBBF24' : '#8B98A9';
@@ -1368,40 +1380,46 @@ function renderHist(){
 const CFG_KEYS = [
   ['gain','gain',0.10,10,3], ['avg_samples','avg',1,1000,0], ['main_readout_absolute','showAbs',0,1,'b'],
   ['at_open_drops','openDrops',1,100,0], ['at_max_ml','maxMl',0.1,500,3], ['at_band_mv','band',0.5,100,3],
-  ['at_target_mv','target',-500,500,2], ['at_stable_window_s','stableWin',2,300,0], ['at_drift_mv','stableMv',0.5,50,1], ['at_expected_ul','expectUl',0,10000,1], ['at_last_result_ul','lastUl',0,10000,1], ['sample_ml','sampleMl',0,5000,1], ['at_last_result_ml','lastMl',0,5000,1],
+  ['at_target_mv','target',-500,500,2], ['at_stable_window_s','stableWin',2,300,0], ['at_drift_mv','stableMv',0.5,50,1], ['at_expected_ul','expectUl',0,10000,1], ['at_last_result_ul','lastUl',0,10000,1], ['sample_ml','sampleMl',0,5000,1], ['titrant','titrant',0,3,0], ['titrant_meq_l','titrantMeq',0,100,2], ['at_last_result_ml','lastMl',0,5000,1],
   ['at_approach','approach',0.10,1,3], ['at_settle_s','settle',1,600,0], ['at_max_dose_drops','maxDrops',1,100,0],
   ['pump_steps_per_s','sps',20,PUMP_MAX_SPS,0], ['pump_dose_steps','doseSteps',1,1000000,0],
   ['prime_steps_per_s','primeSps',20,PUMP_MAX_SPS,0], ['prime_auto_stop_s','primeTo',0,7200,0], ['cal_run_steps_per_s','calSps',20,PUMP_MAX_SPS,0],
   ['brightness_pct','bright',10,100,0], ['cal_reminder_days','calInt',0,730,0],
 ];
 // This unit's calibration: written for the record, never read back.
-const CAL_KEYS = [['zero_offset_mv','zero',3],['input_volts_at_4ma','calVmin',3],['input_volts_at_20ma','calVmax',3],['pump_ul_per_step','ulStep',5],['pump_ul_per_drop','ulDrop',3],['pump_power_sense','pPowerSense','b']];
+const CAL_KEYS = [['input_volts_at_4ma','calVmin',3,[0,3.3]],['input_volts_at_20ma','calVmax',3,[0,3.3]],['pump_ul_per_step','ulStep',5,[0.001,1]],['pump_ul_per_drop','ulDrop',3,[1,200]],['zero_offset_mv','zero',3,null],['pump_power_sense','pPowerSense','b',null]];   // 0.9.56: a limits pair = imported (CS_CAL), null = record only
 const CFG_FILE = 'PCA_Config.txt';
 function cfgFmt(v,p){ return p==='b' ? (v?1:0) : p ? (+v).toFixed(p) : Math.round(v); }
+// every result goes through here: colour it and stamp it; renderFiles() takes it down 30 s later (0.9.58).
+// Real seconds, not simulated ones, so the line stays readable at a faster speed.
+function cfgSay(ok,msg){ S.cfgIo=msg; S.cfgIoOk=ok; S.cfgIoAt=performance.now(); }
 function cfgExport(){
-  if (!S.usbIn){ S.cfgIo='No USB drive detected'; return; }
+  if (!S.usbIn){ cfgSay(false,'No USB stick'); return; }
   const rows=['# MicroMetrix PCA Model 247 configuration','# GigaView firmware '+FW+', exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
   CFG_KEYS.forEach(k=>rows.push(k[0]+' = '+cfgFmt(S[k[1]],k[4])));
-  rows.push('','# Calibration of the unit this file came from. For the record only:','# these lines are NOT read back by Import.');
-  CAL_KEYS.forEach(k=>rows.push(k[0]+' = '+cfgFmt(S[k[1]],k[2])));
+  rows.push('','# Calibration: 4-20 mA input, uL per step, uL per drop. Imported too -','# carry it to another unit, or delete these lines to keep that unit\'s own.');
+  CAL_KEYS.filter(k=>k[3]).forEach(k=>rows.push(k[0]+' = '+cfgFmt(S[k[1]],k[2])));
+  rows.push('','# This unit only. For the record: these lines are NOT read back by Import.');
+  CAL_KEYS.filter(k=>!k[3]).forEach(k=>rows.push(k[0]+' = '+cfgFmt(S[k[1]],k[2])));
   S.usb[CFG_FILE]=rows.join('\r\n')+'\r\n';
-  S.cfgIo='Saved '+CFG_FILE+' ('+(CFG_KEYS.length+CAL_KEYS.length)+' settings). Safe to remove the stick.';
+  cfgSay(true,'Saved '+CFG_FILE+' at '+timeStr(S.t,true)+' ('+(CFG_KEYS.length+CAL_KEYS.length)+' settings). Safe to remove the stick.');
   renderFileLists({where:'usb',name:CFG_FILE});
 }
 function cfgImport(){
-  if ((S.run && S.run.active) || atRunning() || S.pRun){ S.cfgIo='Not during a titration or while the pump runs'; return; }
-  if (!S.usbIn){ S.cfgIo='No USB drive detected'; return; }
-  const text=S.usb[CFG_FILE]; if (!text){ S.cfgIo=CFG_FILE+' not found on the stick'; return; }
+  if ((S.run && S.run.active) || atRunning() || S.pRun){ cfgSay(false,'Not during a titration or while the pump runs'); return; }
+  if (!S.usbIn){ cfgSay(false,'No USB stick'); return; }
+  const text=S.usb[CFG_FILE]; if (!text){ cfgSay(false,CFG_FILE+' not found on the stick'); return; }
   let ok=0, skip=0;
   text.split(/\r?\n/).forEach(line=>{ const t=line.trim(); if (!t || t[0]==='#') return;
     const m=/^(\w+)\s*=\s*(-?[\d.]+)/.exec(t); if (!m){ skip++; return; }
-    if (CAL_KEYS.some(k=>k[0]===m[1])) return;
+    const ck=CAL_KEYS.find(k=>k[0]===m[1]); if (ck){ if (!ck[3]) return; const cv=+m[2]; if (isNaN(cv)||cv<ck[3][0]||cv>ck[3][1]){ skip++; return; } S[ck[1]]=cv; ok++; return; }   // 0.9.56
     const k=CFG_KEYS.find(k=>k[0]===m[1]), v=+m[2];
     if (!k || isNaN(v) || v<k[2] || v>k[3]){ skip++; return; }
     S[k[1]] = k[4]==='b' ? v!==0 : (k[4]===0 ? Math.round(v) : v); ok++; });
+  if (S.calVmax - S.calVmin < 0.1){ S.calVmin=0.478; S.calVmax=2.340; skip++; }   // 0.9.56 pair check
   applyBright();
   atCustomRemember();
-  S.cfgIo='Imported '+ok+' settings'+(skip?', '+skip+' lines skipped':'');
+  cfgSay(!skip,'Imported '+ok+' settings at '+timeStr(S.t,true)+(skip?', '+skip+' lines skipped':''));
 }
 
 // ------------------------------------------------------------------ Files (ui_files_refresh): a menu, the runs page behind Back
@@ -1409,7 +1427,7 @@ function buildFilesMenu(){
   const m=$('fiMenu'); m.innerHTML='';
   [['list','Titration runs',()=>{ S.fiRuns=true; renderFiles(); }],
    ['upload','Export configuration',()=>{ cfgExport(); renderFiles(); }],
-   ['download','Import configuration',()=>confirmBox('Import configuration?','Reads '+CFG_FILE+' from the USB stick and replaces the settings on this unit. Calibration, zero, uL per step, uL per drop and the service PIN are not changed.',cfgImport)]
+   ['download','Import configuration',()=>confirmBox('Import configuration?','Reads '+CFG_FILE+' from the USB stick and replaces the settings on this unit, including the input and pump calibration if the file has them. The zero and the service PIN are not changed.',cfgImport)]
   ].forEach(it=>{ const r=document.createElement('div'); r.className='mrow';
     r.innerHTML='<svg viewBox="0 0 24 24"><path d="'+ICONS[it[0]]+'"/></svg><span></span><span class="ar">&#8250;</span>';
     r.querySelector('span').textContent=it[1]; r.onclick=it[2]; m.appendChild(r); });
@@ -1417,7 +1435,8 @@ function buildFilesMenu(){
 }
 function renderFiles(){
   $('fiMenu').style.display=S.fiRuns?'none':'flex'; $('fiStrip').style.display=S.fiRuns?'flex':'none'; $('fiPage').style.display=S.fiRuns?'flex':'none';
-  $('fiCfgSt').textContent=S.cfgIo;
+  if (S.cfgIo && performance.now()-S.cfgIoAt>=30000) S.cfgIo='';   // a notice, not a standing status (0.9.58)
+  const cs=$('fiCfgSt'); cs.textContent=S.cfgIo; cs.style.color=S.cfgIoOk?'#4ADE80':'#FBBF24';
   const R=S.run;
   if (S.haveRun && R){ $('fiStart').textContent=dateStr(R.startT)+'  '+timeStr(R.startT,true); $('fiDur').textContent=Math.floor(R.lastT-R.startT)+' s'; $('bExp').style.background='#4ADE80'; }
   else { $('fiStart').textContent='-'; $('fiDur').textContent='-'; $('bExp').style.background='#3A4656'; }
@@ -1426,7 +1445,7 @@ function renderFiles(){
   if (S.saveFailed){ fs.textContent='last save FAILED'; fs.style.color='#F87171'; }
   else { fs.textContent=n+' run'+(n===1?'':'s')+', '+(used>=1024?(used/1024).toFixed(1)+' MB':Math.round(used)+' KB')+' of 7 MB'; fs.style.color='#E6EDF3'; }
   $('bExpAll').style.background = n>0 ? '#A78BFA' : '#3A4656';
-  const fu=$('fiUsb'); fu.textContent=S.usbIn?'USB: drive ready':'USB: no drive'; fu.style.color=S.usbIn?'#4ADE80':'#8B98A9';
+  const fu=$('fiUsb'); fu.textContent=S.usbIn?'USB connected':'No USB stick - insert a FAT32 USB drive to export'; fu.style.color=S.usbIn?'#4ADE80':'#8B98A9';
   $('fiStatus').textContent = S.titrStatus || (S.haveRun?'':'Every run is saved on the unit when it ends. Export copies it to a stick.');
   $('fiStatus').style.color = S.exp ? '#22D3EE' : '';
   $('fiBar').style.display = S.exp ? 'block' : 'none';
@@ -1466,7 +1485,8 @@ function renderService(){
   $('svLast').textContent=dateStr(S.calLast);
   $('svInt').textContent=(S.calInt===0?'Off':S.calInt+' days  (next '+dateStr(S.calLast+S.calInt*86400)+')')+'  \u203A';
   const un=unlocked();
-  document.querySelectorAll('#service .btn.g').forEach(b=>b.classList.toggle('dis',!un));
+  $('svActs').style.display=un?'flex':'none';   // hidden, not greyed: the operator never sees them
+  $('svZeroV').textContent=S.zero.toFixed(1)+' mV';
   const ub=$('svUnlock'); ub.innerHTML=un?'&#10005;&nbsp; Lock':'&#9673;&nbsp; Unlock'; ub.style.background=un?'#1B2635':'#22D3EE'; ub.style.color=un?'#E6EDF3':'#0B0F14';
   let m; if (un){ const r=Math.max(0,Math.round((S.unlockedUntil-Date.now())/1000)); m='Unlocked - locks in '+Math.floor(r/60)+':'+pad2(r%60)+(S.svcStatus?'   |   '+S.svcStatus:''); }
   else if (S.svcStatus) m=S.svcStatus;
@@ -1488,9 +1508,9 @@ const ICONS={book:'M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2
   gear:'M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.5 7.5 0 0 0-1.7-1L15 3.3H9l-.4 2.6a7.5 7.5 0 0 0-1.7 1l-2.5-1-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.5 7.5 0 0 0 1.7 1l.4 2.6h6l.4-2.6a7.5 7.5 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z'
 };
 const GROUPS=[
-  {name:'Sensor', icon:'eye', rows:[{n:'Sensitivity (gain)',f:'gain'},{n:'Averaging (samples)',f:'avg'},{n:'Input @ 4 mA  (-1000 mV)',f:'calVmin'},{n:'Input @ 20 mA (+1000 mV)',f:'calVmax'},{n:'Raw ADC readout (diag)',t:'raw'}]},
-  {name:'Titrate', icon:'bolt', rows:[{n:'Mode',t:'atmode'},{n:'Sample volume',f:'sampleMl'},{n:'Opening dose',f:'openDrops'},{n:'Expected titrant',f:'expectUl'},{n:'Max titrant',f:'maxMl'},{n:'Endpoint band',f:'band'},{n:'Endpoint target',f:'target'},{n:'Stability window',f:'stableWin'},{n:'Allowed drift',f:'stableMv'},{n:'Approach factor',f:'approach'},{n:'Largest dose',f:'maxDrops'},{n:'Settle time',f:'settle'}]},
-  {name:'Pump', icon:'drop', rows:[{n:'Pump controls',t:'pump'},{n:'Power sense (D5)',t:'psense'}]},
+  {name:'Sensor', icon:'eye', inst:true, rows:[{n:'Sensitivity (gain)',f:'gain'},{n:'Averaging (samples)',f:'avg'},{n:'Input @ 4 mA  (-1000 mV)',f:'calVmin'},{n:'Input @ 20 mA (+1000 mV)',f:'calVmax'},{n:'Raw ADC readout (diag)',t:'raw'}]},
+  {name:'Titrate', icon:'bolt', rows:[{n:'Mode',t:'atmode'},{n:'Titrant',t:'titrant'},{n:'Titrant strength',f:'titrantMeq'},{n:'Sample volume',f:'sampleMl'},{n:'Opening dose',f:'openDrops'},{n:'Expected titrant',f:'expectUl'},{n:'Max titrant',f:'maxMl'},{n:'Endpoint band',f:'band'},{n:'Endpoint target',f:'target'},{n:'Stability window',f:'stableWin'},{n:'Allowed drift',f:'stableMv'},{n:'Approach factor',f:'approach'},{n:'Largest dose',f:'maxDrops'},{n:'Settle time',f:'settle'}]},
+  {name:'Pump', icon:'drop', rows:[{n:'Pump controls',t:'pump'},{n:'Power sense (D5)',t:'psense',inst:true}]},
   {name:'Display & clock', icon:'display', rows:[{n:'Main readout',t:'mode'},{n:'Brightness',t:'bright'},{n:'Date',f:'date'},{n:'Time',f:'time'}]},
   {name:'Service', icon:'gear', screen:'service', rows:[]},
   {name:'Device manual', icon:'book', help:true, rows:[]},   // the QR code to aquasummit.com/pca (0.9.43)
@@ -1505,7 +1525,8 @@ const FIELD={
   maxMl:{title:'Max titrant',hint:'mL the titrator may add in one run, 0.1 - 500',pre:()=>S.maxMl.toFixed(1),get:()=>S.maxMl.toFixed(1)+' mL',set:v=>{S.maxMl=clamp(v,0.1,500);dirty();}},
   band:{title:'Endpoint band',hint:'mV either side of the target that counts as the endpoint, 0.5 - 100',pre:()=>S.band.toFixed(1),get:()=>S.band.toFixed(1)+' mV',set:v=>{S.band=clamp(v,0.5,100);dirty();}},
   stableWin:{title:'Stability window',hint:'seconds the reading must hold still to count as settled, 2 - 300',pre:()=>S.stableWin,get:()=>S.stableWin+' s',set:v=>{S.stableWin=clamp(Math.round(v),2,300);dirty();}},
-  sampleMl:{title:'Sample volume',hint:'mL of sample in the cell. The last result is scaled to it, and the file gives uL per mL. 0 = unknown',pre:()=>S.sampleMl.toFixed(0),get:()=>S.sampleMl>0?S.sampleMl.toFixed(0)+' mL':'not set',set:v=>{S.sampleMl=clamp(v,0,5000);dirty();}},
+  titrantMeq:{title:'Titrant strength',hint:'meq/L of the titrant: 0.001 N = 1.0 (the usual standard). Gives the result in ueq/L with Sample volume. 0 = unknown',pre:()=>S.titrantMeq.toFixed(2),get:()=>S.titrantMeq>0?S.titrantMeq.toFixed(2)+' meq/L':'not set',set:v=>{S.titrantMeq=clamp(v,0,100);dirty();}},   // 0.9.55
+  sampleMl:{title:'Sample volume',hint:'mL of sample in the cell. With Titrant strength set, the result is also given in ueq/L. 0 = unknown',pre:()=>S.sampleMl.toFixed(0),get:()=>S.sampleMl>0?S.sampleMl.toFixed(0)+' mL':'not set',set:v=>{S.sampleMl=clamp(v,0,5000);dirty();}},
   expectUl:{title:'Expected titrant',hint:'uL this sample is expected to need: 75% goes in first, then steps of up to a quarter of it. 0 = unknown',pre:()=>S.expectUl.toFixed(0),get:()=>S.expectUl>0?S.expectUl.toFixed(0)+' uL':'off',set:v=>{S.expectUl=clamp(v,0,10000);dirty();}},
   stableMv:{title:'Allowed drift',hint:'mV the reading may move within the window and still be settled, 0.5 - 50',pre:()=>S.stableMv.toFixed(1),get:()=>S.stableMv.toFixed(1)+' mV',set:v=>{S.stableMv=clamp(v,0.5,50);dirty();}},
   target:{title:'Endpoint target',hint:'mV the titration aims for: 0 = neutral, or e.g. -10, -500 to 500',pre:()=>S.target.toFixed(1),get:()=>S.target.toFixed(1)+' mV',set:v=>{S.target=clamp(v,-500,500);dirty();}},
@@ -1513,15 +1534,15 @@ const FIELD={
   maxDrops:{title:'Largest dose',hint:'drops - the most one dose may add, 1 - 100',pre:()=>S.maxDrops,get:()=>S.maxDrops+' drops',set:v=>{S.maxDrops=clamp(Math.round(v),1,100);dirty();atCustomRemember();}},
   settle:{title:'Settle time',hint:'seconds to wait after each dose, 1 - 600',pre:()=>S.settle,get:()=>S.settle+' s',set:v=>{S.settle=clamp(Math.round(v),1,600);dirty();atCustomRemember();}},
   primeFlow:{title:'Prime flow rate',hint:()=>'uL/min for Prime and Reverse - up to '+flowUlMin(PUMP_MAX_SPS).toFixed(0),pre:()=>flowUlMin(S.primeSps).toFixed(0),get:()=>flowUlMin(S.primeSps).toFixed(0)+' uL/min',set:v=>{const r=rateSps(v), m=S.pStatus; S.primeSps=r; rateChanged(); if (m.startsWith('Capped')||m.startsWith('Raised')) S.pStatus=m;}},
-  calFlow:{title:'Cal Run flow rate',hint:()=>'uL/min for Cal Run - up to '+flowUlMin(PUMP_MAX_SPS).toFixed(0),pre:()=>flowUlMin(S.calSps).toFixed(0),get:()=>flowUlMin(S.calSps).toFixed(0)+' uL/min',set:v=>{const r=rateSps(v), m=S.pStatus; S.calSps=r; rateChanged(); if (m.startsWith('Capped')||m.startsWith('Raised')) S.pStatus=m;}},
+  calFlow:{title:'Cal run flow rate',hint:()=>'uL/min for Cal run - up to '+flowUlMin(PUMP_MAX_SPS).toFixed(0),pre:()=>flowUlMin(S.calSps).toFixed(0),get:()=>flowUlMin(S.calSps).toFixed(0)+' uL/min',set:v=>{const r=rateSps(v), m=S.pStatus; S.calSps=r; rateChanged(); if (m.startsWith('Capped')||m.startsWith('Raised')) S.pStatus=m;}},
   primeTo:{title:'Prime auto-stop',hint:'seconds before a prime stops itself - 0 = never',pre:()=>S.primeTo,get:()=>S.primeTo?S.primeTo+' s':'Never',set:v=>{S.primeTo=clamp(Math.round(v),0,3600);}},
   ulStepCfg:{title:'uL per motor step',hint:'type it directly if you already know it',pre:()=>S.ulStep.toFixed(4),get:()=>S.ulStep.toFixed(4),set:v=>{ if (v>0&&v<=1000){ S.ulStep=v; S.pStatus='Set '+v.toFixed(4)+' uL/step'; } else S.pStatus='uL/step must be 0 - 1000'; }},
   doseUl:{title:'Dose size',hint:'microlitres delivered by the Dose button',pre:()=>(S.doseSteps*S.ulStep).toFixed(1),set:v=>{S.doseSteps=clamp(Math.round(v/S.ulStep),1,1000000);}},
-  flow:{title:'Dosing rate',hint:()=>'uL/min for 1 Drop and Dose, up to '+flowUlMin(PUMP_MAX_SPS).toFixed(0)+'. Prime has its own Flow',pre:()=>flowUlMin(S.sps).toFixed(0),set:v=>{const r=rateSps(v), m=S.pStatus; S.sps=r; rateChanged(); if (m.startsWith('Capped')||m.startsWith('Raised')) S.pStatus=m;}},
+  flow:{title:'Dosing rate',hint:()=>'uL/min for 1 drop and Dose, up to '+flowUlMin(PUMP_MAX_SPS).toFixed(0)+'. Prime has its own Flow',pre:()=>flowUlMin(S.sps).toFixed(0),set:v=>{const r=rateSps(v), m=S.pStatus; S.sps=r; rateChanged(); if (m.startsWith('Capped')||m.startsWith('Raised')) S.pStatus=m;}},
   ulDrop:{title:'uL per drop',hint:'1 - 200. A 0.6 mm tip is ~12 uL, 2 mm ~40 uL',pre:()=>S.ulDrop.toFixed(1),set:v=>{S.ulDrop=clamp(v,1,200);}},
   calMl:{title:()=>S.pRun?'Cal - pump is still running':S.pTotal===0?'Cal - no steps counted yet':'Calibrate: enter mL collected',
-         hint:()=>S.pRun?'Wait for the run to finish first':S.pTotal===0?'Press Reset, then Cal Run, THEN come back here':'Divides by the '+S.pTotal+' steps run since Reset',pre:()=>'',
-         set:v=>{ if (S.pRun) S.pStatus='Wait for the run to finish, then enter mL'; else if (S.pTotal===0) S.pStatus='No steps counted - press Reset, then Cal Run, THEN enter mL';
+         hint:()=>S.pRun?'Wait for the run to finish first':S.pTotal===0?'Press Reset, then Cal run, THEN come back here':'Divides by the '+S.pTotal+' steps run since Reset',pre:()=>'',
+         set:v=>{ if (S.pRun) S.pStatus='Wait for the run to finish, then enter mL'; else if (S.pTotal===0) S.pStatus='No steps counted - press Reset, then Cal run, THEN enter mL';
                   else if (v<=0) S.pStatus='Enter the mL you collected';
                   else { const was=S.ulStep; S.ulStep=v*1000/S.pTotal; S.pStatus='Cal: '+was.toFixed(4)+' -> '+S.ulStep.toFixed(4)+' uL/step  ('+v.toFixed(2)+' mL / '+S.pTotal+' steps)'; } }},
   date:{title:'Set date',hint:'Format: YYYYMMDD (e.g. 20260725)',pre:()=>dateStr(S.t).replace(/-/g,''),get:()=>dateStr(S.t),set:v=>{ const s=String(Math.round(v)); if (s.length!==8) return; const x=tm(S.t); const d=new Date(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8),x.h,x.mi,x.s); if (!isNaN(d)) S.t=Math.floor(d.getTime()/1000)+(S.t%1); }},
@@ -1532,22 +1553,28 @@ const FIELD={
 };
 function buildMenu(){
   const m=$('cfgMenu'); m.innerHTML='';
+  const un=(typeof S==='object'&&S)?unlocked():false;   // buildMenu() runs once before boot()
   GROUPS.forEach((G,i)=>{
+    if (G.inst && !un) return;   // installer group: not shown to the operator
     const r=document.createElement('div'); r.className='mrow';
     r.innerHTML='<svg viewBox="0 0 24 24"><path d="'+ICONS[G.icon]+'"/></svg><span></span><span class="ar">&#8250;</span>';
     r.querySelector('span').textContent=G.name;
+    if (G.screen==='service' && un){ const a=r.querySelector('.ar'); a.textContent='unlocked  \u203A'; a.style.color='#22D3EE'; }
     r.onclick=()=>{ if (G.screen){ show(G.screen); return; } if (G.help){ $('help').classList.add('on'); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
     m.appendChild(r);
   });
   const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v'+FW+'</span>'; m.appendChild(fw);
 }
+let menuLocked=null;
 function renderConfig(){
   const home = S.cfgGroup<0;
+  if (home && menuLocked!==unlocked()){ menuLocked=unlocked(); buildMenu(); }   // the menu changes with the lock
   $('cfgMenu').style.display=home?'flex':'none'; $('cfgStrip').style.display=home?'none':'flex'; $('rows').style.display=home?'none':'flex';
   if (home) return;
   const G=GROUPS[S.cfgGroup]; $('cfgTitle').textContent=G.name;
   const box=$('rows'); const keep=box.scrollTop; box.innerHTML='';
   G.rows.forEach(r=>{
+    if (r.inst && !unlocked()) return;
     const d=document.createElement('div'); d.className='crow2';
     const n=document.createElement('span'); n.className='n'; n.textContent=r.n; d.appendChild(n);
     const v=document.createElement('span'); v.className='v';
@@ -1559,7 +1586,13 @@ function renderConfig(){
         const lab=document.createElement('span'); lab.className='v'; lab.textContent=S.bright+' %'; inp.oninput=()=>{S.bright=+inp.value; lab.textContent=S.bright+' %'; applyBright();};
         w.appendChild(inp); w.appendChild(lab); d.appendChild(w); box.appendChild(d); return; }
       case 'pump': v.innerHTML='&#8250;'; d.onclick=()=>show('pump'); break;
-      case 'atmode': v.textContent=atModeName(atMode()); d.onclick=()=>{ atModeNext(); renderConfig(); }; break;
+      case 'atmode': { d.classList.add('ro'); const seg=document.createElement('span'); seg.className='seg'; const cur=atMode();
+        const opts=[0,1,2].concat(cur>=3||S.atCustom?[3]:[]);
+        opts.forEach(m=>{ const p=document.createElement('span'); p.textContent=atModeName(m); if (m===cur) p.classList.add('on');
+          p.onclick=()=>{ if (atRunning()){ S.atStatus='Mode can be changed when the run ends'; return; } atCustomRemember(); const M=m===3?S.atCustom:AT_MODES[m]; if (M){ S.approach=M.approach; S.settle=M.settle; S.maxDrops=M.maxDrops; dirty(); } renderConfig(); };
+          seg.appendChild(p); });
+        d.appendChild(seg); box.appendChild(d); return; }
+      case 'titrant': v.textContent=titrantName(); d.onclick=()=>{ titrantNext(); renderConfig(); }; break;
       case 'psense': v.textContent=!S.pPowerSense?'Off':S.pPowerOk?'On - powered':'On - NO POWER'; v.style.color=!S.pPowerSense?'#8B98A9':S.pPowerOk?'#4ADE80':'#F87171';
         d.onclick=()=>{ S.pPowerSense=!S.pPowerSense; S.pPowerOk=!S.pPowerSense||S.pPower; renderAll(); }; break;
     }
@@ -1622,6 +1655,7 @@ function show(s){
   if (!['service','config','pump'].includes(s) && unlocked()) lock();
   if (s==='config' && S.screen!=='config') S.cfgGroup=-1;
   if (s==='files' && S.screen!=='files') S.fiRuns=false;
+  if (S.screen==='files' && s!=='files') S.cfgIo='';   // a result is not kept for the next visit (0.9.58)
   S.screen=s;
   document.querySelectorAll('.scr').forEach(e=>e.classList.toggle('on',e.id===s));
   document.querySelectorAll('#nav .it').forEach(e=>e.classList.toggle('on',e.dataset.s===RAIL[s]));
@@ -1633,7 +1667,7 @@ document.querySelectorAll('#nav .it').forEach(e=>e.onclick=()=>{ const s=e.datas
   show(s); });
 $('hMode').onclick=()=>{ S.showAbs=!S.showAbs; renderAll(); };
 $('bTitr').onclick=()=>show('manual');   // Home's Manual Titration opens the screen; the run starts there (0.9.42)
-// Manual Titration screen: Start/Stop (stopping halts a prime or dose too), Prime (toggles), 1 Drop / Dose (open a run if none)
+// Manual Titration screen: Start/Stop (stopping halts a prime or dose too), Prime (toggles), 1 drop / Dose (open a run if none)
 $('bMRun').onclick=()=>{ if (S.run&&S.run.active && S.pRun && !atRunning()) pumpHalt('Stopped'); titrToggle(); renderAll(); };
 $('bMPrime').onclick=()=>{ if (atRunning()) return; if (S.pRun && !S.pCont) return; prime(+1); renderAll(); };
 $('bMDrop').onclick=()=>{ if (S.pRun || atRunning()) return; if (!(S.run&&S.run.active)) titrToggle(); if (!(S.run&&S.run.active)) return renderAll(); if (pumpBusy()) return renderAll(); const n=Math.max(1,Math.round(S.ulDrop/S.ulStep)); pumpStart(+1,n,S.sps,true); S.pStatus='1 drop = '+n+' steps'; renderAll(); };
@@ -1676,14 +1710,14 @@ function prime(dir){ if (S.pRun){ pumpHalt('Stopped'); return; } if (pumpBusy())
 $('pPrime').onclick=()=>{ prime(+1); renderAll(); }; $('pRev').onclick=()=>{ prime(-1); renderAll(); };
 $('pStop').onclick=()=>{ pumpHalt('Stopped'); renderAll(); };
 // service screen
+$('svBack').onclick=()=>show('config');
 $('svUnlock').onclick=()=>{ if (unlocked()){ lock(); S.svcStatus='Locked'; renderService(); } else openEditor('pin'); };
-$('svMark').onclick=()=>{ if (!unlocked()) return; touchSvc(); confirmBox('Record calibration as done?', S.calInt?'Records today as the last calibration. The next reminder falls due in '+S.calInt+' days.':'Records today as the last calibration. The reminder is currently off.', ()=>{ S.calLast=S.t; S.svcStatus='Calibration recorded'; serviceLog('calibrated'); }); };
+$('svMark').onclick=()=>{ if (!unlocked()) return; touchSvc(); confirmBox('Mark calibrated?', S.calInt?'Records today as the last calibration. The next reminder falls due in '+S.calInt+' days.':'Records today as the last calibration. The reminder is currently off.', ()=>{ S.calLast=S.t; S.svcStatus='Calibration recorded'; serviceLog('calibrated'); }); };
 // the Interval line is the interval setting; Clear zero took its button (0.9.33, the SCM's 0.9.39)
 $('svIntRow').onclick=()=>{ if (!unlocked()) return; touchSvc(); openEditor('calInt'); };
-$('svZero').onclick=()=>{ if (!unlocked()) return; touchSvc(); confirmBox('Clear the zero offset?','Relative readings will equal the Absolute reading again. The present zero offset is '+S.zero.toFixed(1)+' mV.',()=>{ if (S.run&&S.run.active) S.run.dirty=true; S.zero=0; S.svcStatus='Zero offset cleared - Relative now equals Absolute'; serviceLog('zero cleared'); }); };
+$('svZero').onclick=()=>{ if (!unlocked()) return; touchSvc(); confirmBox('Clear zero?','Relative readings will equal the Absolute reading again. The present zero offset is '+S.zero.toFixed(1)+' mV.',()=>{ if (S.run&&S.run.active) S.run.dirty=true; S.zero=0; S.svcStatus='Zero offset cleared - Relative now equals Absolute'; serviceLog('zero cleared'); }); };
 $('svPin').onclick=()=>{ if (!unlocked()) return; touchSvc(); openEditor('newpin'); };
-$('svPump').onclick=()=>show('pump');
-$('svReset').onclick=()=>{ if (!unlocked()) return; touchSvc(); confirmBox('Reset all settings?','Restores every setting to factory values - including the input and pump calibration and the drop size - and marks calibration due. The clock, the service PIN and the interval are kept.',()=>{ const keep={pin:S.pin,calInt:S.calInt,pPowerSense:S.pPowerSense}; /* power sense describes wiring: kept, as the firmware does */ Object.assign(S,DEF,keep); S.calLast=S.t-S.calInt*86400; S.svcStatus='Factory settings restored'; serviceLog('factory reset'); applyBright(); }); };
+$('svReset').onclick=()=>{ if (!unlocked()) return; touchSvc(); confirmBox('Factory reset?','Restores every setting to factory values - including the input and pump calibration and the drop size - and marks calibration due. The clock, the service PIN and the interval are kept.',()=>{ const keep={pin:S.pin,calInt:S.calInt,pPowerSense:S.pPowerSense}; /* power sense describes wiring: kept, as the firmware does */ Object.assign(S,DEF,keep); S.calLast=S.t-S.calInt*86400; S.svcStatus='Factory settings restored'; serviceLog('factory reset'); applyBright(); }); };
 function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',2600); }
 
 // ------------------------------------------------------------------ scenario panel

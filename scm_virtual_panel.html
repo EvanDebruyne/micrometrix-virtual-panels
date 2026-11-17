@@ -224,7 +224,7 @@ html.bare .bezel{border-radius:0;box-shadow:none}
 <div class="wrap">
   <div class="head">
     <h1>SCM Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.62. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.70. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -498,7 +498,7 @@ function fresh(){
   S = Object.assign({}, DEF, {
     t: now, speed:1, screen:'scm',
     abs:91, live:91, held:91, showAbs:false, aLow:false, aHigh:false,
-    cleanActive:false, phase:0, phaseStart:now, lastClean:now, fault:false, flowSwitch:true, di1Func:0, di1Low:true, di2Func:0, di2Low:true, fiPage:0, cfgIo:'', frelayFs:false, arelayFs:false, relayLow:true, healthLimit:0, healthAlarm:false, noFlow:false, hLowSecs:0, startupHold:DEF.startupMin>0, startupUntil:now+DEF.startupMin*60,
+    cleanActive:false, phase:0, phaseStart:now, lastClean:now, fault:false, flowSwitch:true, di1Func:0, di1Low:true, di2Func:0, di2Low:true, fiPage:0, cfgIo:'', cfgIoOk:false, cfgIoAt:0, frelayFs:false, arelayFs:false, relayLow:true, healthLimit:0, healthAlarm:false, noFlow:false, hLowSecs:0, startupHold:DEF.startupMin>0, startupUntil:now+DEF.startupMin*60,
     pidAuto:false, out:0, integ:0, doseReady:true,
     usb:true, rowsToday:0, lastExport:'', lastKind:-1, exportStatus:'USB connected', lastSlot:-1, lastCleanLogT:0,
     trendScale:2, calLast: now - 23*86400, unlockedUntil:0, fails:0, lockoutUntil:0, svcStatus:'',
@@ -930,21 +930,24 @@ const CFG_KEYS = [
 // calibration: exported AND imported since 0.9.59 (name, state key, decimals, lo, hi); REC_KEYS are this board's only
 const CAL_KEYS = [['input_volts_at_4ma','calVmin',3,0,3.3],['input_volts_at_20ma','calVmax',3,0,3.3],['reading_out_4ma','dac4',0,0,4095],['reading_out_20ma','dac20',0,0,4095],['dose_out_4ma','dose4',0,0,65535],['dose_out_20ma','dose20',0,0,65535]];
 const REC_KEYS = [['zero_offset_mv','zero',3]];
+// every result goes through here: colour it and stamp it; renderFiles() takes it down 30 s later (0.9.70).
+// Real seconds, not simulated ones, so the line stays readable at 60x speed.
+function cfgSay(ok,msg){ S.cfgIo=msg; S.cfgIoOk=ok; S.cfgIoAt=performance.now(); }
 function cfgExport(){
-  if (!S.usb){ S.cfgIo='No USB stick'; return; }
+  if (!S.usb){ cfgSay(false,'No USB stick'); return; }
   const fmt=(v,p)=> p==='b' ? (v?1:0) : p ? (+v).toFixed(p) : Math.round(v);
-  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.62, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
+  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.70, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
   CFG_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[4])));
   rows.push('','# Calibration of the sensor input and the 4-20 mA outputs. Import applies','# these too; Service > Factory reset restores the built-in values.');
   CAL_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
   rows.push('','# This board only, for the record: these lines are NOT read back by Import.');
   REC_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
   S.files['SCM_Config.txt']={ rows, kind:'export', col:'#E6EDF3' };
-  S.cfgIo='Saved SCM_Config.txt ('+(CFG_KEYS.length+CAL_KEYS.length+REC_KEYS.length)+' settings). Safe to remove the stick.'; renderUsb('SCM_Config.txt');
+  cfgSay(true,'Saved SCM_Config.txt at '+timeStr(S.t,true)+' ('+(CFG_KEYS.length+CAL_KEYS.length+REC_KEYS.length)+' settings). Safe to remove the stick.'); renderUsb('SCM_Config.txt');
 }
 function cfgImport(){
-  if (!S.usb){ S.cfgIo='No USB stick'; return; }
-  const f=S.files['SCM_Config.txt']; if (!f){ S.cfgIo='SCM_Config.txt not found on the stick'; return; }
+  if (!S.usb){ cfgSay(false,'No USB stick'); return; }
+  const f=S.files['SCM_Config.txt']; if (!f){ cfgSay(false,'SCM_Config.txt not found on the stick'); return; }
   let ok=0, skip=0;
   f.rows.forEach(line=>{ const t=line.trim(); if(!t||t[0]==='#') return; const m=/^(\w+)\s*=\s*(-?[\d.]+)/.exec(t); if(!m){skip++;return;}
     if (REC_KEYS.some(k=>k[0]===m[1])) return; const v=+m[2];
@@ -954,7 +957,7 @@ function cfgImport(){
   if (![1,10,100].includes(S.dispDiv)) S.dispDiv=1; if (S.outMax<=S.outMin){ S.outMin=0; S.outMax=100; }
   if (S.calVmax<S.calVmin+0.1){ S.calVmin=DEF.calVmin; S.calVmax=DEF.calVmax; } if (S.dac20<=S.dac4){ S.dac4=DEF.dac4; S.dac20=DEF.dac20; } if (S.dose20<=S.dose4){ S.dose4=DEF.dose4; S.dose20=DEF.dose20; }
   S.out=clamp(S.out,S.outMin,S.outMax); applyBright();
-  S.cfgIo='Imported '+ok+' settings'+(skip?', '+skip+' lines skipped':'');
+  cfgSay(!skip,'Imported '+ok+' settings at '+timeStr(S.t,true)+(skip?', '+skip+' lines skipped':''));
 }
 function buildFilesMenu(){
   const m=$('fiMenu'); m.innerHTML='';
@@ -973,7 +976,8 @@ function renderFiles(){
   $('fiMenu').style.display=S.fiPage?'none':'flex'; $('fiStrip').style.display=S.fiPage?'flex':'none';
   $('fiLogPage').style.display=S.fiPage===1?'flex':'none'; $('fiExpPage').style.display=S.fiPage===2?'flex':'none';
   $('fiTitle').textContent = S.fiPage===2 ? 'Export data' : 'Data logging';
-  $('fiCfgSt').textContent=S.cfgIo;
+  if (S.cfgIo && performance.now()-S.cfgIoAt>=30000) S.cfgIo='';   // a notice, not a standing status (0.9.70)
+  const cs=$('fiCfgSt'); cs.textContent=S.cfgIo; cs.style.color=S.cfgIoOk?'#4ADE80':'#FBBF24';
   const paused = !S.usb; const fl=$('fiLog');
   void paused; fl.textContent='every '+S.logInt+' min  \u203A'; fl.style.color='#4ADE80';
   $('fiRows').textContent = S.rowsToday;
@@ -1084,7 +1088,7 @@ function buildMenu(){
     r.onclick=()=>{ if (G.screen){ show(G.screen); return; } if (G.help){ $('help').classList.add('on'); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
     m.appendChild(r);
   });
-  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.62</span>'; m.appendChild(fw);
+  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.70</span>'; m.appendChild(fw);
 }
 function groupVisible(i){ const G=GROUPS[i]; return !(G.feat==='pid'&&!S.featPid) && !(G.feat==='clean'&&!S.featClean); }
 function renderConfig(){
@@ -1164,6 +1168,7 @@ function show(s){
   if (S.screen==='service' && s!=='service') lock();
   if (s==='config' && S.screen!=='config'){ S.cfgGroup=-1; $('cfgMenu').scrollTop=0; }   // always arrive at the menu
   if (s==='files' && S.screen!=='files') S.fiPage=0;
+  if (S.screen==='files' && s!=='files') S.cfgIo='';   // a result is not kept for the next visit (0.9.70)
   S.screen=s;
   document.querySelectorAll('.scr').forEach(e=>e.classList.toggle('on', e.id===s));
   document.querySelectorAll('#nav .it').forEach(e=>e.classList.toggle('on', e.dataset.s===s));
