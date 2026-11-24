@@ -194,6 +194,7 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
 .crow2{height:62px;background:#1B2635;border:1px solid #3A4656;border-radius:12px;padding:12px;position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:28px;cursor:pointer;flex:none}
 .crow2:active{background:#131b26}
 .crow2 .n{color:#E6EDF3;padding-left:2px;white-space:nowrap}
+.cnote{color:#8B98A9;font-size:20px;line-height:1.2;padding:0 6px;flex:none}
 .crow2 .v{color:#22D3EE;padding-right:2px;white-space:nowrap}
 .crow2.ro{cursor:default}
 .crow2.ro:active{background:#1B2635}
@@ -251,7 +252,7 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
 <div class="wrap">
   <div class="head">
     <h1>PCA Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.58. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.60. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -574,7 +575,7 @@ function fit(){ const s = stage.clientWidth/800; dev.style.transform = 'scale('+
 new ResizeObserver(fit).observe(stage); fit();
 
 // ------------------------------------------------------------------ firmware constants (PCA 0.9.21)
-const FW = '0.9.58';
+const FW = '0.9.60';
 const DEF = { zero:0, gain:1.00, avg:32, showAbs:false, showRaw:false, calVmin:0.478, calVmax:2.340,
   sps:800, doseSteps:9690, ulStep:0.0258, ulDrop:12.5, primeSps:2000, primeTo:600,
   band:2.5, target:0, expectUl:0, lastUl:0, lastMl:0, sampleMl:0, titrant:0, titrantMeq:1.0, stableWin:15, stableMv:3.0, approach:0.80, settle:10, maxDrops:20, openDrops:5, maxMl:10.0, bright:80, calInt:90, pin:'0000', pPowerSense:false, calSps:1500 };   // the demo's own PIN - deliberately NOT the factory PIN, this page is public
@@ -582,8 +583,8 @@ const TRUE_UL_STEP = 0.0258;         // what the simulated pump really moves per
 const DT = 0.25;                     // the firmware's 250 ms reading / titrator tick
 const RESPONSE_MV = 3.0, AT_MAX_STEPS = 200, AT_NO_RESPONSE_DOSES = 8, AT_NO_RESPONSE_MAX_FRAC = 0.10, AT_STEEP_RATIO = 3, AT_STEEPEN_RATIO = 1.5, AT_STEEP_CAP_FRAC = 0.25, AT_RAMP_FACTOR = 1.5;   // 3 until 0.9.32, 5 until 0.9.40
 // titration mode (0.9.31): presets of approach / settle / largest dose; Custom when they match none
-const SETTLE_MAX_S = 120;            // 0.9.50: a dose is judged after this long at the latest...
-const SETTLE_HARD_S = 240;           // 0.9.52: ...unless the reading is still clearly moving; then this
+const SETTLE_MAX_S = 60;             // 0.9.50: a dose is judged after this long at the latest... (120 until 0.9.59)
+const SETTLE_HARD_S = 120;           // 0.9.52: ...unless the reading is still clearly moving; then this (240 until 0.9.59)
 const PRED_Q_MIN = 0.10, PRED_Q_MAX = 0.75, PRED_HOLD_S = 5, HIST_N = 320;   // 0.9.52: predicted settling
 const EXPECT_FRAC = 0.75, EXPECT_STEP_FRAC = 0.25, EXPECT_STEP_MIN_DROPS = 2;   // 0.9.51/0.9.52: Expected titrant
 const AT_MODES = [ {name:'Cautious',approach:0.40,settle:15,maxDrops:10}, {name:'Normal',approach:0.80,settle:10,maxDrops:20}, {name:'Aggressive',approach:0.90,settle:6,maxDrops:40} ];
@@ -595,10 +596,11 @@ function atModeNext(){ if (atRunning()){ S.atStatus='Mode can be changed when th
   const c=atMode(); atCustomRemember();
   const m = c>=3 ? 0 : (c+1<3 ? c+1 : (S.atCustom ? 3 : 0));
   const M = m===3 ? S.atCustom : AT_MODES[m]; S.approach=M.approach; S.settle=M.settle; S.maxDrops=M.maxDrops; dirty();
-  S.atStatus = m===0 ? 'Cautious: small doses, more of them - least chance of going past zero'
-             : m===1 ? 'Normal: a few doses, small chance of going past zero'
-             : m===2 ? 'Aggressive: fewest doses, fastest - for samples that answer quickly'
-             : 'Custom: '+Math.round(M.approach*100)+'% of the remaining volume per dose, up to '+M.maxDrops+' drops, '+M.settle+' s wait'; }
+  S.atStatus = atModeStatus(m); }
+// 0.9.59: the status after a mode change carries the numbers, and the Config note under Mode says what they do.
+const AT_MODE_TRADE=['least chance of passing zero','a few doses, small overshoot risk','fewest doses, for fast samples','your own set'];
+function atModeStatus(m){ return atModeName(m)+': '+Math.round(S.approach*100)+'% per dose, max '+S.maxDrops+' drops, '+S.settle+' s wait - '+AT_MODE_TRADE[m<3?m:3]; }
+function atModeDescribe(){ return Math.round(S.approach*100)+'% of what is left per dose, up to '+S.maxDrops+' drops. Waits '+S.settle+' s after a dose, judges it by '+SETTLE_MAX_S+' s ('+SETTLE_HARD_S+' s while still moving).'; }
 const TITRANT_KINDS=[{name:'PolyDADMAC',cationic:true},{name:'PVSK',cationic:false},{name:'Other cationic',cationic:true},{name:'Other anionic',cationic:false}];   // 0.9.55
 function titrantName(){ return TITRANT_KINDS[S.titrant%4].name; }
 function titrantCationic(){ return TITRANT_KINDS[S.titrant%4].cationic; }
@@ -826,7 +828,7 @@ function titrToggle(){
   } else if (S.run.hold) titrFinalize(S.run.hold.outcome, S.run.hold.reason);   // Stop during the hold keeps the real outcome
   else titrFinalize(TO.STOPPED_OPERATOR, 'Stopped by operator');
 }
-const HOLD_DRIFT=3, HOLD_WIN=30, HOLD_MAX=180;   // the hold (0.9.47)
+const HOLD_DRIFT=10, HOLD_WIN=30, HOLD_MAX=90;   // the hold (0.9.47; 3 mV / 180 s until 0.9.60)
 function outcomeHolds(o){ return ![TO.STOPPED_OPERATOR,TO.ABORT_SENSOR_FAULT,TO.ABORT_PUMP_POWER,TO.ABORT_OPENING_DOSE,TO.NO_TITRATION_NEEDED].includes(o); }
 function titrEnd(outcome, reason){
   const R=S.run; if (!R || !R.active || R.hold) return;
@@ -1532,7 +1534,7 @@ const FIELD={
   target:{title:'Endpoint target',hint:'mV the titration aims for: 0 = neutral, or e.g. -10, -500 to 500',pre:()=>S.target.toFixed(1),get:()=>S.target.toFixed(1)+' mV',set:v=>{S.target=clamp(v,-500,500);dirty();}},
   approach:{title:'Approach factor',hint:'% of the predicted remaining volume per dose, 10 - 100',pre:()=>Math.round(S.approach*100),get:()=>Math.round(S.approach*100)+' %',set:v=>{S.approach=clamp(Math.round(v),10,100)/100;dirty();atCustomRemember();}},
   maxDrops:{title:'Largest dose',hint:'drops - the most one dose may add, 1 - 100',pre:()=>S.maxDrops,get:()=>S.maxDrops+' drops',set:v=>{S.maxDrops=clamp(Math.round(v),1,100);dirty();atCustomRemember();}},
-  settle:{title:'Settle time',hint:'seconds to wait after each dose, 1 - 600',pre:()=>S.settle,get:()=>S.settle+' s',set:v=>{S.settle=clamp(Math.round(v),1,600);dirty();atCustomRemember();}},
+  settle:{title:'Settle time',hint:'least seconds after a dose before it is judged, 1 - 60 (judged by 60 s anyway, 120 s while still moving)',pre:()=>S.settle,get:()=>S.settle+' s',set:v=>{S.settle=clamp(Math.round(v),1,SETTLE_MAX_S);dirty();atCustomRemember();}},
   primeFlow:{title:'Prime flow rate',hint:()=>'uL/min for Prime and Reverse - up to '+flowUlMin(PUMP_MAX_SPS).toFixed(0),pre:()=>flowUlMin(S.primeSps).toFixed(0),get:()=>flowUlMin(S.primeSps).toFixed(0)+' uL/min',set:v=>{const r=rateSps(v), m=S.pStatus; S.primeSps=r; rateChanged(); if (m.startsWith('Capped')||m.startsWith('Raised')) S.pStatus=m;}},
   calFlow:{title:'Cal run flow rate',hint:()=>'uL/min for Cal run - up to '+flowUlMin(PUMP_MAX_SPS).toFixed(0),pre:()=>flowUlMin(S.calSps).toFixed(0),get:()=>flowUlMin(S.calSps).toFixed(0)+' uL/min',set:v=>{const r=rateSps(v), m=S.pStatus; S.calSps=r; rateChanged(); if (m.startsWith('Capped')||m.startsWith('Raised')) S.pStatus=m;}},
   primeTo:{title:'Prime auto-stop',hint:'seconds before a prime stops itself - 0 = never',pre:()=>S.primeTo,get:()=>S.primeTo?S.primeTo+' s':'Never',set:v=>{S.primeTo=clamp(Math.round(v),0,3600);}},
@@ -1589,9 +1591,10 @@ function renderConfig(){
       case 'atmode': { d.classList.add('ro'); const seg=document.createElement('span'); seg.className='seg'; const cur=atMode();
         const opts=[0,1,2].concat(cur>=3||S.atCustom?[3]:[]);
         opts.forEach(m=>{ const p=document.createElement('span'); p.textContent=atModeName(m); if (m===cur) p.classList.add('on');
-          p.onclick=()=>{ if (atRunning()){ S.atStatus='Mode can be changed when the run ends'; return; } atCustomRemember(); const M=m===3?S.atCustom:AT_MODES[m]; if (M){ S.approach=M.approach; S.settle=M.settle; S.maxDrops=M.maxDrops; dirty(); } renderConfig(); };
+          p.onclick=()=>{ if (atRunning()){ S.atStatus='Mode can be changed when the run ends'; return; } atCustomRemember(); const M=m===3?S.atCustom:AT_MODES[m]; if (M){ S.approach=M.approach; S.settle=M.settle; S.maxDrops=M.maxDrops; dirty(); S.atStatus=atModeStatus(m); } renderConfig(); };
           seg.appendChild(p); });
-        d.appendChild(seg); box.appendChild(d); return; }
+        d.appendChild(seg); box.appendChild(d);
+        const note=document.createElement('div'); note.className='cnote'; note.textContent=atModeName(cur)+': '+atModeDescribe(); box.appendChild(note); return; }
       case 'titrant': v.textContent=titrantName(); d.onclick=()=>{ titrantNext(); renderConfig(); }; break;
       case 'psense': v.textContent=!S.pPowerSense?'Off':S.pPowerOk?'On - powered':'On - NO POWER'; v.style.color=!S.pPowerSense?'#8B98A9':S.pPowerOk?'#4ADE80':'#F87171';
         d.onclick=()=>{ S.pPowerSense=!S.pPowerSense; S.pPowerOk=!S.pPowerSense||S.pPower; renderAll(); }; break;

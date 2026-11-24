@@ -224,7 +224,7 @@ html.bare .bezel{border-radius:0;box-shadow:none}
 <div class="wrap">
   <div class="head">
     <h1>SCM Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.74. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.76. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -490,7 +490,7 @@ new ResizeObserver(fit).observe(stage); fit();
 // ------------------------------------------------------------------ state (mirrors the .ino globals)
 const DEF = { zero:97, alarmLow:-500, alarmHigh:500, avg:32, calVmin:0.491, calVmax:2.481, dac4:658, dac20:3285,
   cleanIntHr:1, flushS:60, recovS:60, sp:0, kp:1, ti:60, rev:true, dose4:13107, dose20:65535, bright:100,
-  outMin:0, outMax:100, pwrup:0, pwrupOut:0, startupMin:10, featPid:true, featClean:true, logInt:15, dispDiv:1, traces:7, calInt:90, pin:'0000' };   // the demo's own PIN - deliberately NOT the factory PIN, this page is public
+  outMin:0, outMax:100, pwrup:0, pwrupOut:0, startupMin:0, featPid:true, featClean:true, logInt:15, dispDiv:1, traces:7, calInt:90, pin:'0000' };   // the demo's own PIN - deliberately NOT the factory PIN, this page is public
 const HYST = 10, SPAN = 2000;
 let S;
 function fresh(){
@@ -529,6 +529,24 @@ function fmtSc(mv, plus){
 const unit = () => S.dispDiv===1 ? ' mV' : '';
 function relLive(){ return clamp(S.live - S.zero, -1000, 1000); }
 function relHeld(){ return clamp(S.held - S.zero, -1000, 1000); }
+// The process value (0.9.76): the value on the big digits, Relative or Absolute. Alarms, the controller and the trend act on it.
+function pvLive(){ return S.showAbs ? clamp(S.live, -1000, 1000) : relLive(); }
+function pvHeld(){ return S.showAbs ? clamp(S.held, -1000, 1000) : relHeld(); }
+// app_toggle_display_mode(): the limits, the setpoint and the recorded trend move by the zero offset, so the switch does not upset the process
+function switchMode(){
+  const shift = S.showAbs ? -S.zero : S.zero;
+  S.showAbs = !S.showAbs;
+  S.alarmLow = clamp(S.alarmLow+shift,-1000,1000); S.alarmHigh = clamp(S.alarmHigh+shift,-1000,1000); S.sp = clamp(S.sp+shift,-1000,1000);
+  [S.fast].concat(S.slow).forEach(rg=>{ for (let i=0;i<rg.v.length;i++) rg.v[i] = clamp(rg.v[i]+shift,-1000,1000); });
+  S.acc.forEach(a=>{ a.v += shift*a.n; });
+  if (S.pidAuto){ const e=((S.sp-pvHeld())/SPAN)*100*(S.rev?1:-1); S.integ=S.out-S.kp*e; }
+}
+function askMode(){
+  const to = S.showAbs ? 'Relative' : 'Absolute', shift = S.showAbs ? -S.zero : S.zero;
+  const first = 'Alarms, the controller and the 4-20 mA reading output will act on the '+to+' value. ';
+  confirm('Switch to '+to+'?', Math.abs(shift)<0.05 ? first+'The zero offset is 0, so the two values are equal and nothing else changes.'
+    : first+'The alarm limits and the setpoint move by '+fmtSc(shift,true)+unit()+' to match, so the process sees no change. The reading output steps by that amount.', switchMode, 'Switch');
+}
 function pad2(n){ return (n<10?'0':'')+n; }
 function tm(t){ const d=new Date(t*1000); return {y:d.getFullYear(),mo:d.getMonth()+1,d:d.getDate(),h:d.getHours(),mi:d.getMinutes(),s:d.getSeconds()}; }
 function dateStr(t){ const x=tm(t); return x.y+'-'+pad2(x.mo)+'-'+pad2(x.d); }
@@ -592,7 +610,7 @@ function stepSecond(quiet){
   const wasF = S.fault; S.fault = wasF ? (S.live < -1025) : (S.live < -1050);
   if (S.fault && !wasF && S.pidAuto){ S.pidAuto=false; S.out=S.outMin; S.integ=0; }
   // alarms with hysteresis
-  const r = relHeld();
+  const r = pvHeld();   // the value shown (0.9.76; was always Relative)
   S.aLow  = S.aLow  ? (r < S.alarmLow  + HYST) : (r < S.alarmLow);
   S.aHigh = S.aHigh ? (r > S.alarmHigh - HYST) : (r > S.alarmHigh);
   if (S.startupHold) S.aLow = S.aHigh = false;
@@ -610,13 +628,13 @@ function stepSecond(quiet){
   if (!quiet || S.t % 60 === 0) sweep();
   // trend rings: fast ring every 1/6 s -> 6 points per second
   const ph = !S.cleanActive ? 0 : S.phase;
-  for (let i=0;i<6;i++) push(S.fast, relLive(), S.out, ph);
+  for (let i=0;i<6;i++) push(S.fast, pvLive(), S.out, ph);
   // slow rings every 2.5 s: 2 of every 5 seconds get 1 sample, 3 get 0... approximate with 0.4 samples/s
   S.fastAcc += 0.4;
   while (S.fastAcc >= 1){
     S.fastAcc -= 1;
     for (let k=0;k<6;k++){
-      const a = S.acc[k]; a.v += relLive(); a.o += S.out; a.n++;
+      const a = S.acc[k]; a.v += pvLive(); a.o += S.out; a.n++;
       if (ph===1 || (ph===2 && a.p!==1)) a.p = ph;
       if (a.n >= MULT[k]){ push(S.slow[k], a.v/a.n, a.o/a.n, a.p); a.v=a.o=a.n=0; a.p=0; }
     }
@@ -797,11 +815,11 @@ function renderTop(){
 }
 const mctx = document.createElement('canvas').getContext('2d');
 function measure(txt,px,w){ mctx.font = (w||400)+' '+px+'px Montserrat, Arial'; return mctx.measureText(txt).width; }
-function zoneColor(v){ if (v<S.alarmLow) return '#F87171'; if (v>S.alarmHigh) return '#60A5FA'; if (v>=-10&&v<=10) return '#4ADE80'; return '#8B98A9'; }
+function zoneColor(pv,rel){ if (pv<S.alarmLow) return '#F87171'; if (pv>S.alarmHigh) return '#60A5FA'; if (rel>=-10&&rel<=10) return '#4ADE80'; return '#8B98A9'; }   // alarms follow the value shown; green = at the zero
 function renderScm(){
   const rel = relHeld(); let hero = S.showAbs ? S.held : rel; hero = clamp(hero,-1999,1999);
   const dg = $('digits');
-  if (S.fault){ dg.textContent='----'; dg.style.color='#F87171'; } else { dg.textContent = fmtSc(hero,false); dg.style.color = zoneColor(rel); }
+  if (S.fault){ dg.textContent='----'; dg.style.color='#F87171'; } else { dg.textContent = fmtSc(hero,false); dg.style.color = zoneColor(pvHeld(), rel); }
   let txt, bg;
   if (S.fault){ txt='SENSOR FAULT'; bg='#F87171'; }
   else if (S.noFlow){ txt='NO FLOW'; bg='#FBBF24'; }
@@ -936,7 +954,7 @@ function cfgSay(ok,msg){ S.cfgIo=msg; S.cfgIoOk=ok; S.cfgIoAt=performance.now();
 function cfgExport(){
   if (!S.usb){ cfgSay(false,'No USB stick'); return; }
   const fmt=(v,p)=> p==='b' ? (v?1:0) : p ? (+v).toFixed(p) : Math.round(v);
-  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.74, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
+  const rows=['# MicroMetrix SCM Model 247 configuration','# GigaView firmware 0.9.76, exported '+dateStr(S.t)+' '+timeStr(S.t,true),'# One setting per line: name = value. Lines starting with # are ignored.',''];
   CFG_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[4])));
   rows.push('','# Calibration of the sensor input and the 4-20 mA outputs. Import applies','# these too; Service > Factory reset restores the built-in values.');
   CAL_KEYS.forEach(k=>rows.push(k[0]+' = '+fmt(S[k[1]],k[2])));
@@ -1088,7 +1106,7 @@ function buildMenu(){
     r.onclick=()=>{ if (G.screen){ show(G.screen); return; } if (G.help){ $('help').classList.add('on'); return; } S.cfgGroup=i; renderConfig(); $('rows').scrollTop=0; };
     m.appendChild(r);
   });
-  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.74</span>'; m.appendChild(fw);
+  const fw=document.createElement('div'); fw.className='crow2 ro'; fw.innerHTML='<span class="n">Firmware</span><span class="v" style="color:#8B98A9">v0.9.76</span>'; m.appendChild(fw);
 }
 function groupVisible(i){ const G=GROUPS[i]; return !(G.feat==='pid'&&!S.featPid) && !(G.feat==='clean'&&!S.featClean); }
 function renderConfig(){
@@ -1107,7 +1125,7 @@ function renderConfig(){
     else switch(r.t){
       case 'rtmod': d.classList.add('ro'); v.textContent='GP8630N @ 0x5C'; v.style.color='#8B98A9'; break;
       case 'net': d.classList.add('ro'); v.textContent='192.168.50.2  connected'; v.style.color='#4ADE80'; break;   // 0.9.74: the demo unit has the shield and a master
-      case 'mode': v.textContent=S.showAbs?'Absolute':'Relative'; d.onclick=()=>{S.showAbs=!S.showAbs;renderConfig();}; break;
+      case 'mode': v.textContent=S.showAbs?'Absolute':'Relative'; d.onclick=askMode; break;
       case 'range': v.textContent=S.dispDiv===100?'+/-10.00':S.dispDiv===10?'+/-100.0':'+/-1000 mV'; d.onclick=()=>{S.dispDiv=S.dispDiv===1?10:S.dispDiv===10?100:1;renderConfig();}; break;
       case 'bright': { d.classList.add('ro'); const w=document.createElement('span'); w.className='slider'; const inp=document.createElement('input'); inp.type='range'; inp.min=10; inp.max=100; inp.value=S.bright; inp.id='brightSl'; const lab=document.createElement('span'); lab.className='v'; lab.textContent=S.bright+' %'; inp.oninput=()=>{S.bright=+inp.value; lab.textContent=S.bright+' %'; applyBright();}; w.appendChild(inp); w.appendChild(lab); d.appendChild(w); box.appendChild(d); return; }
       case 'dir': v.textContent=S.rev?'Reverse':'Direct'; d.onclick=()=>{S.rev=!S.rev;renderConfig();}; break;
@@ -1142,7 +1160,7 @@ function renderEd(){ const F=FIELD[edField]; $('edV').textContent = F.mask ? 'â€
 function key(k){
   if (k==='Enter'){ applyEdit(); closeEd(); return; }
   if (k==='Cancel'){ closeEd(); return; }
-  if (k==='AUTO'){ closeEd(); if (!S.fault) confirm('Switch PID to AUTO?','The controller takes over from the present dose output, with no step at the pump.',()=>{ S.pidAuto=true; const e=((S.sp-relHeld())/SPAN)*100*(S.rev?1:-1); S.integ=S.out-S.kp*e; },'Switch'); return; }
+  if (k==='AUTO'){ closeEd(); if (!S.fault) confirm('Switch PID to AUTO?','The controller takes over from the present dose output, with no step at the pump.',()=>{ S.pidAuto=true; const e=((S.sp-pvHeld())/SPAN)*100*(S.rev?1:-1); S.integ=S.out-S.kp*e; },'Switch'); return; }
   if (k==='Clear') edText=''; else if (k==='âŒ«') edText=edText.slice(0,-1);
   else if (k==='+/-') edText = edText.startsWith('-')?edText.slice(1):'-'+edText;
   else if (edText.length<10) edText+=k;
@@ -1183,7 +1201,7 @@ $('bLow').onclick=()=>openEditor('alarmLow'); $('bHigh').onclick=()=>openEditor(
 $('bZero').onclick=()=>confirm('Zero the reading?','The current reading becomes the new zero. Relative readings are measured from it.',()=>{S.zero=S.held;},'Zero');
 $('bClean').onclick=()=>{ if(S.cleanActive) return; confirm('Start a clean cycle?','Opens the flush valve for '+S.flushS+' s, then holds the reading for '+S.recovS+' s while the sensor recovers.',startClean,'Clean'); };
 $('bPid').onclick=()=>{ if(!S.doseReady || S.fault) return; openEditor('tomanual'); };
-$('scmMode').onclick=()=>{ S.showAbs=!S.showAbs; renderAll(); };
+$('scmMode').onclick=askMode;
 $('bWin').onclick=()=>{ const i=ORDER.indexOf(S.trendScale); S.trendScale=ORDER[(i+1)%7]; renderTrend(); };
 document.querySelectorAll('#chips .chipb').forEach(c=>c.onclick=()=>{ S.traces^=(1<<+c.dataset.i); renderTrend(); });
 $('tHealth').onclick=()=>{ renderHist(); $('hist').classList.add('on'); };
