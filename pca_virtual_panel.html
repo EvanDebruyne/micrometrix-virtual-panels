@@ -252,7 +252,7 @@ kbd{font:inherit;background:var(--pg-chip);border:1px solid var(--pg-line);borde
 <div class="wrap">
   <div class="head">
     <h1>PCA Model 247 &mdash; virtual panel</h1>
-    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.60. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
+    <div class="sub">Interactive simulation of the touchscreen, built from firmware v0.9.61. Tap the screen as you would the real one. No hardware, nothing is written anywhere.</div>
   </div>
 
   <div class="grid">
@@ -575,7 +575,7 @@ function fit(){ const s = stage.clientWidth/800; dev.style.transform = 'scale('+
 new ResizeObserver(fit).observe(stage); fit();
 
 // ------------------------------------------------------------------ firmware constants (PCA 0.9.21)
-const FW = '0.9.60';
+const FW = '0.9.61';
 const DEF = { zero:0, gain:1.00, avg:32, showAbs:false, showRaw:false, calVmin:0.478, calVmax:2.340,
   sps:800, doseSteps:9690, ulStep:0.0258, ulDrop:12.5, primeSps:2000, primeTo:600,
   band:2.5, target:0, expectUl:0, lastUl:0, lastMl:0, sampleMl:0, titrant:0, titrantMeq:1.0, stableWin:15, stableMv:3.0, approach:0.80, settle:10, maxDrops:20, openDrops:5, maxMl:10.0, bright:80, calInt:90, pin:'0000', pPowerSense:false, calSps:1500 };   // the demo's own PIN - deliberately NOT the factory PIN, this page is public
@@ -645,7 +645,7 @@ function fresh(){
     pTotal:0, pDoses:0, pStatus:'Idle', pLastStop:now-420, pPrimed:true,
     // titration + auto-titrator
     run:null, seq:122, lastName:'', titrStatus:'', haveRun:false,
-    at:{ state:AT.IDLE, steps:0, slope:0, gain:0, cap:0, refReading:0, refVolume:0, haveSlope:false, noResp:0, prevReading:0, prevVolume:0, stabRef:0, stabSince:0, phaseT:0, sign0:1, commanding:false,
+    at:{ state:AT.IDLE, steps:0, slope:0, gain:0, gainMax:0, cap:0, refReading:0, refVolume:0, haveSlope:false, noResp:0, prevReading:0, prevVolume:0, stabRef:0, stabSince:0, phaseT:0, sign0:1, commanding:false,
          hist:[], histLast:0, answered:false, onsetS:0, learnOnset:0, predHave:false, predMv:0, predAgree:0, expectRun:0, log:[], saidS:-1 },   // 0.9.52
     useLast:false,
     atStatus:'Idle',
@@ -813,7 +813,7 @@ function newRun(){
   S.seq++;
   return { active:true, count:0, vals:[], vols:[], flags:[], startT:S.t, lastT:0, titrant:0, auto:0, manual:0,
     outcome:TO.IN_PROGRESS, detail:'', sign:0, crossT:0, clipped:0, noiseSum:0, noiseMax:0, noiseN:0, wmin:null, wmax:null,
-    floored:0, noResp:0, wrongDir:0, ramped:0, steepUl:0, baseDrift:0, unsettled:0, expectUsed:0, settledN:0, predictedN:0, onsetS:0, expectSrc:0, dirty:false, flagPending:0, seq:S.seq,
+    floored:0, noResp:0, wrongDir:0, ramped:0, steepUl:0, baseDrift:0, unsettled:0, expectUsed:0, settledN:0, predictedN:0, creeping:0, openingCross:0, onsetS:0, expectSrc:0, dirty:false, flagPending:0, seq:S.seq,
     idleBefore: Math.max(0, Math.floor(S.t - S.pLastStop)), clockTrusted:true };
 }
 // In the demo a finished sample is swapped for a fresh one when the next run starts.
@@ -828,7 +828,7 @@ function titrToggle(){
   } else if (S.run.hold) titrFinalize(S.run.hold.outcome, S.run.hold.reason);   // Stop during the hold keeps the real outcome
   else titrFinalize(TO.STOPPED_OPERATOR, 'Stopped by operator');
 }
-const HOLD_DRIFT=10, HOLD_WIN=30, HOLD_MAX=90;   // the hold (0.9.47; 3 mV / 180 s until 0.9.60)
+const HOLD_DRIFT=10, HOLD_WIN=20, HOLD_MAX=90;   // the hold (0.9.47; 3 mV / 180 s until 0.9.60, 30 s window until 0.9.61)
 function outcomeHolds(o){ return ![TO.STOPPED_OPERATOR,TO.ABORT_SENSOR_FAULT,TO.ABORT_PUMP_POWER,TO.ABORT_OPENING_DOSE,TO.NO_TITRATION_NEEDED].includes(o); }
 function titrEnd(outcome, reason){
   const R=S.run; if (!R || !R.active || R.hold) return;
@@ -846,18 +846,21 @@ function titrFinalize(outcome, reason){
   R.holdS = R.hold ? Math.floor(S.t-R.hold.startT) : 0; R.hold=null; R.finalMv=S.disp;
   R.outcome = outcome; R.detail = reason;
   R.endpointUl=0;
+  R.openingCross = ((R.autoSteps||0)===1 && outcome===TO.ENDPOINT_CROSSED) ? 1 : 0;   // 0.9.61: no slope to interpolate on
+  if (R.openingCross) S.atStatus='Crossed zero on the opening dose - estimate only, lower Expected titrant';
   if ((R.autoSteps||0)>0 && R.titrant>0 && (outcome===TO.ENDPOINT_BAND || outcome===TO.ENDPOINT_CROSSED || outcome===TO.ENDPOINT_DROP_FLOOR)){   // 0.9.52/0.9.53
     R.endpointUl=R.titrant; const a=S.at.judgedMv-S.target, b=R.finalMv-S.target;
     if (a*b<0 && R.titrant>S.at.judgedUl) R.endpointUl=S.at.judgedUl+(R.titrant-S.at.judgedUl)*(-a)/(b-a);
-    S.lastUl=R.endpointUl; S.lastMl=S.sampleMl; }
+    if (!R.openingCross){ S.lastUl=R.endpointUl; S.lastMl=S.sampleMl; } }
   atStopForRunEnd();
   R.active = false; R.lastT = S.t; S.haveRun = R.count>0;
   { const ch=chargeUeqL(R.endpointUl);   // 0.9.55
-    S.titrStatus = ch!==0 ? reason+' - '+R.endpointUl.toFixed(0)+' uL = '+(ch>0?'+':'')+ch.toFixed(1)+' ueq/L, '+Math.floor(R.lastT - R.startT)+'s'
+    S.titrStatus = R.openingCross ? 'Opening dose crossed zero - '+R.endpointUl.toFixed(0)+' uL is only an estimate. Lower Expected titrant' : ch!==0 ? reason+' - '+R.endpointUl.toFixed(0)+' uL = '+(ch>0?'+':'')+ch.toFixed(1)+' ueq/L, '+Math.floor(R.lastT - R.startT)+'s'
                           : reason+' - '+R.count+' pts, '+Math.floor(R.lastT - R.startT)+'s'; }
   runStoreFinished();
 }
-function resultStatus(o){
+function resultStatus(o, R){
+  if (R && R.openingCross) return 'ESTIMATE';   // 0.9.61
   switch(o){ case TO.ENDPOINT_BAND: case TO.ENDPOINT_CROSSED: case TO.ENDPOINT_DROP_FLOOR: case TO.ZEROCROSS_PASSIVE: case TO.NO_TITRATION_NEEDED: return 'OK';
     case TO.ABORT_MAX_VOLUME: case TO.ABORT_MAX_STEPS: return 'INCOMPLETE';
     case TO.ABORT_NO_RESPONSE: case TO.ABORT_NO_SLOPE: case TO.ABORT_WRONG_DIRECTION: case TO.ABORT_OPENING_DOSE: case TO.ABORT_SENSOR_FAULT: case TO.ABORT_PUMP_POWER: return 'FAULT';
@@ -871,9 +874,9 @@ function trainingUse(R){
 
 // ------------------------------------------------------------------ auto-titrator (damped secant, at_service)
 function atRunning(){ const s=S.at.state; return s===AT.BASE || s===AT.DOSING || s===AT.SETTLE; }
-function atResetState(){ const A=S.at; A.state=AT.IDLE; A.steps=0; A.haveSlope=false; A.noResp=0; A.slope=0; A.gain=0; A.cap=0; A.learnOnset=0; A.log=[]; A.expectRun=0; S.atStatus='Idle'; }
+function atResetState(){ const A=S.at; A.state=AT.IDLE; A.steps=0; A.haveSlope=false; A.noResp=0; A.slope=0; A.gain=0; A.gainMax=0; A.cap=0; A.learnOnset=0; A.log=[]; A.expectRun=0; S.atStatus='Idle'; }
 // 0.9.52 helpers: the 1 Hz history since the dose, the extrapolated final reading, the per-dose log
-function atSettleBegin(){ const A=S.at; A.hist=[]; A.histLast=S.t-1; A.answered=false; A.onsetS=0; A.predHave=false; A.predAgree=0; A.predMv=0; }
+function atSettleBegin(){ const A=S.at; A.creepFlagged=false; A.hist=[]; A.histLast=S.t-1; A.answered=false; A.onsetS=0; A.predHave=false; A.predAgree=0; A.predMv=0; }
 function atMean(from,n){ let s=0; for (let i=0;i<n;i++) s+=S.at.hist[from+i]; return s/n; }
 function atPredict(w){
   const A=S.at; if (!A.answered || w<3 || A.hist.length < A.onsetS + 3*w) return null;   // readings after the answer only
@@ -892,6 +895,7 @@ function atHistTick(){
   A.predHave=true; A.predMv=p;
 }
 function atRecentMove(){ const h=S.at.hist, w=S.stableWin; return h.length>w ? Math.abs(h[h.length-1]-h[h.length-1-w]) : 0; }
+function atRecentToward(toward0){ const h=S.at.hist, w=S.stableWin; return h.length>w ? (h[h.length-1]-h[h.length-1-w])*toward0 : 0; }   // 0.9.61: signed, + = closer to the target
 const AT_HOW = ['waiting','settled','predicted','cap','still_moving','ended'];
 function atSettled(){
   const A=S.at;
@@ -949,15 +953,18 @@ function atService(){
       floorS = Math.min(floorS, SETTLE_MAX_S);
       if (elapsed < floorS) return;
       const firstProbe = (A.steps===1 && !A.learnOnset), waitAnswer = firstProbe || A.learnOnset>0, moving = atRecentMove() >= S.stableMv, havePred = A.predHave && A.predAgree >= PRED_HOLD_S;
+      // 0.9.61 creep test: still gaining more than half the drift on the target over one window = still responding, whatever the drift box says
+      const creeping = A.answered && atRecentToward(toward0) >= 0.5*S.stableMv;
+      if (creeping && !A.creepFlagged){ A.creepFlagged=true; R.creeping++; }
       let how=0, rj=S.disp;
-      if (settled && (A.answered || !waitAnswer || elapsed >= SETTLE_MAX_S)) how=1;
+      if (settled && !creeping && (A.answered || !waitAnswer || elapsed >= SETTLE_MAX_S)) how=1;
       else if (havePred && A.answered){
         const past = A.sign0>0 ? (A.predMv <= S.target + S.band) : (A.predMv >= S.target - S.band);
         if (!past){ how=2; rj=A.predMv; }
       }
       if (!how){ if (elapsed >= SETTLE_HARD_S) how=4; else if (elapsed >= SETTLE_MAX_S && (!A.answered || !moving)) how=3; }
       if (!how){
-        if (elapsed !== A.saidS){ A.saidS=elapsed; S.atStatus='Dose '+A.steps+': '+(!A.answered?'waiting for a response':(A.predHave?'responding, predicting the end':'responding'))+' ('+elapsed+'s)'; }
+        if (elapsed !== A.saidS){ A.saidS=elapsed; S.atStatus='Dose '+A.steps+': '+(!A.answered?'waiting for a response':(settled&&creeping)?'still creeping toward the target':(A.predHave?'responding, predicting the end':'responding'))+' ('+elapsed+'s)'; }
         return;
       }
       if (how===1) R.settledN++; else if (how===2) R.predictedN++; else R.unsettled++;
@@ -983,10 +990,10 @@ function atService(){
           if (A.haveSlope) refG=A.gain; else if (beforeUl>0){ const bm=(A.prevReading-A.refReading)*toward; refG=Math.max(0,bm)/beforeUl; }
           const steep = lastMv>=resp && lastG>0 && refG>=0 && lastG>=AT_STEEP_RATIO*refG;
           let g;
-          if (steep){ g=lastG; gSize=g; const cap=Math.max(minu,AT_STEEP_CAP_FRAC*doseUl); if (A.cap<=0 || cap<A.cap) A.cap=cap; if (R.steepUl<=0) R.steepUl=nowUl; why=' steep'; }
+          if (steep){ g=lastG; let ratio=refG>0?lastG/refG:3; if (ratio>3) ratio=3; gSize=g*ratio; if (R.steepUl<=0) R.steepUl=nowUl; why=' steep'; }   // 0.9.61: no quarter-dose cap for the rest of the run; the next dose as if the steepening went on
           else { g=spanG; if (lastMv>=resp && lastG>g) g=lastG; if (A.haveSlope && g<A.gain) g=0.5*(g+A.gain);
             gSize=g; if (A.haveSlope && A.gain>0 && g>=AT_STEEPEN_RATIO*A.gain){ gSize=Math.min(g*(g/A.gain), 3*g); why=' steepening'; } }   // 0.9.53
-          A.gain=g; A.slope=g*toward; A.haveSlope=true;
+          A.gain=g; if (g>A.gainMax) A.gainMax=g; A.slope=g*toward; A.haveSlope=true;   // 0.9.61: gainMax
         }
         A.refReading=rj; A.refVolume=nowUl;
       }
@@ -994,6 +1001,7 @@ function atService(){
       let inc, floored=false;
       if (wrongDir){ R.wrongDir++; inc=minu; floored=true; why=' away from 0'; }   // AT_ABORT_ON_WRONG_DIRECTION is 0
       else if (A.haveSlope){
+        if (A.gainMax>gSize) gSize=A.gainMax;   // 0.9.61: never size from a gain below the steepest seen
         const predicted=Math.abs(rj-S.target)/gSize;
         if (predicted < minu && Math.abs(rj-S.target) <= 4*S.band){ atFinish(AT.DONE,'Endpoint - within one drop',TO.ENDPOINT_DROP_FLOOR); return; }   // only near the target (0.9.48)
         inc=S.approach*predicted;
@@ -1004,6 +1012,7 @@ function atService(){
       if (inc > ramp){ inc=ramp; R.ramped++; if (!why) why=' ramp'; }
       if ((how===3 || how===4) && A.answered && doseUl>=minu && inc>doseUl){ inc=doseUl; if (!why) why=' held'; }   // 0.9.53: no growth after a cap
       if (A.cap>0 && inc>A.cap) inc=A.cap;
+      if (minu>0) inc=Math.max(1,Math.floor(inc/minu))*minu;   // 0.9.61: whole drops, rounded down
       if (inc < minu){ inc=minu; floored=true; }
       if (A.steps >= AT_MAX_STEPS){ atFinish(AT.ABORT,'Too many steps',TO.ABORT_MAX_STEPS); return; }
       if (R.titrant + inc > S.maxMl*1000){ atFinish(AT.ABORT,'Max volume reached',TO.ABORT_MAX_VOLUME); return; }
@@ -1022,7 +1031,7 @@ function autoToggle(){
   if (S.ulStep<=0 || S.ulDrop<=0){ S.atStatus='Calibrate the pump first'; return; }
   if (!S.run || !S.run.active) titrToggle();
   A.expectRun = S.useLast ? atLastOffer() : 0; S.useLast=false; A.log=[]; A.learnOnset=0;   // 0.9.52/0.9.53
-  A.steps=0; A.haveSlope=false; A.noResp=0; A.slope=0; A.gain=0; A.cap=0;
+  A.steps=0; A.haveSlope=false; A.noResp=0; A.slope=0; A.gain=0; A.gainMax=0; A.cap=0;
   A.prevReading=S.disp; A.prevVolume=S.run.titrant; A.stabRef=S.disp; A.stabSince=S.t; A.phaseT=S.t;
   A.state=AT.BASE; S.atStatus='Waiting for a stable baseline...';
 }
@@ -1038,7 +1047,7 @@ function runCsv(R){
   L.push('Micrometrix Model PCA - Titration Export');
   L.push('Schema,4','Firmware,'+FW,'Run_id,'+R.seq);
   L.push('Outcome,'+(inProg?'IN_PROGRESS':TO_NAME[R.outcome]),'Outcome_detail,'+(inProg?'Exported while still running':R.detail),
-         'Result_status,'+(inProg?'NOT_A_RESULT':resultStatus(R.outcome)),'Training_use,'+(inProg?'EXCLUDE':trainingUse(R)));
+         'Result_status,'+(inProg?'NOT_A_RESULT':resultStatus(R.outcome, R)),'Training_use,'+(inProg?'EXCLUDE':trainingUse(R)));
   L.push('Mode,'+((R.autoSteps||0)>0?'AUTO':'MANUAL'));
   const dur = Math.floor((inProg?S.t:R.lastT) - R.startT);
   L.push('Date,'+dateStr(R.startT),'Start_time,'+timeStr(R.startT,true),'Duration_s,'+dur,'Samples,'+R.count);
@@ -1061,6 +1070,7 @@ function runCsv(R){
   L.push('Baseline_drifting,'+(R.baseDrift?'YES':'NO'),'Doses_unsettled,'+R.unsettled);
   L.push('Doses_settled,'+R.settledN,'Doses_predicted,'+R.predictedN,'Response_onset_s,'+R.onsetS);   // 0.9.52
   L.push('Expected_source,'+(R.expectSrc===2?'LAST_RESULT':R.expectSrc===1?'SETTING':'NONE'),'AT_last_result_uL,'+S.lastUl.toFixed(1));
+  L.push('Gain_max_mV_per_uL,'+(S.at.gainMax||0).toFixed(4),'Doses_creeping,'+(R.creeping||0),'Opening_dose_crossed,'+(R.openingCross?'YES':'NO'));   // 0.9.61
   L.push('Sample_mL,'+S.sampleMl.toFixed(1),'Endpoint_interpolated_uL,'+(inProg?0:(R.endpointUl||0)).toFixed(1),'Result_uL_per_mL,'+((S.sampleMl>0&&!inProg)?(R.endpointUl||0)/S.sampleMl:0).toFixed(3));   // 0.9.53
   { const ch=inProg?0:chargeUeqL(R.endpointUl||0); L.push('Titrant,'+titrantName(),'Titrant_polarity,'+(titrantCationic()?'CATIONIC':'ANIONIC'),'Titrant_meq_L,'+S.titrantMeq.toFixed(3),'Charge_ueq_L,'+ch.toFixed(1),'Charge_reported,'+(ch!==0?'YES':'NO')); }   // 0.9.55
   S.at.log.forEach((d,i)=>L.push('Dose_'+(i+1)+',at='+d.tDose+'s uL='+d.ul.toFixed(1)+' judged='+d.tJudge+'s how='+AT_HOW[d.how]+' r='+d.r.toFixed(1)+' final='+d.final.toFixed(1)+' gain='+d.gain.toFixed(4)));
@@ -1088,7 +1098,7 @@ function runStoreFinished(){
   while (STORE_KB - storeUsedKb() < RESERVE_KB && runNames().length) delete S.unit[runNames()[0]];
   const name = baseName(R)+'.csv', text = runCsv(R);
   S.unit[name] = text; S.saveFailed=false;
-  S.results.push(dateStr(R.startT)+','+timeStr(R.startT,true)+','+R.seq+','+((R.autoSteps||0)>0?'AUTO':'MANUAL')+','+TO_NAME[R.outcome]+','+resultStatus(R.outcome)+','
+  S.results.push(dateStr(R.startT)+','+timeStr(R.startT,true)+','+R.seq+','+((R.autoSteps||0)>0?'AUTO':'MANUAL')+','+TO_NAME[R.outcome]+','+resultStatus(R.outcome, R)+','
     +R.titrant.toFixed(1)+','+(R.titrant/1000).toFixed(4)+','+Math.floor(R.lastT-R.startT)+','+(R.autoSteps||0)+','+titrantName()+','+S.sampleMl.toFixed(1)+','+chargeUeqL(R.endpointUl||0).toFixed(1)+','+name);
   // the stick is written only on request since 0.9.37 (the SCM's 0.9.48): no copy here
   if (!S.seeding) renderFileLists(S.usbIn ? {where:'usb',name} : {where:'unit',name});
@@ -1526,7 +1536,7 @@ const FIELD={
   openDrops:{title:'Opening dose',hint:'drops in the first dose, 1 - 100',pre:()=>S.openDrops,get:()=>S.openDrops+' drops',set:v=>{S.openDrops=clamp(Math.round(v),1,100);dirty();}},
   maxMl:{title:'Max titrant',hint:'mL the titrator may add in one run, 0.1 - 500',pre:()=>S.maxMl.toFixed(1),get:()=>S.maxMl.toFixed(1)+' mL',set:v=>{S.maxMl=clamp(v,0.1,500);dirty();}},
   band:{title:'Endpoint band',hint:'mV either side of the target that counts as the endpoint, 0.5 - 100',pre:()=>S.band.toFixed(1),get:()=>S.band.toFixed(1)+' mV',set:v=>{S.band=clamp(v,0.5,100);dirty();}},
-  stableWin:{title:'Stability window',hint:'seconds the reading must hold still to count as settled, 2 - 300',pre:()=>S.stableWin,get:()=>S.stableWin+' s',set:v=>{S.stableWin=clamp(Math.round(v),2,300);dirty();}},
+  stableWin:{title:'Stability window',hint:'seconds the reading must hold still, and not creep toward the endpoint, to count as settled, 2 - 300',pre:()=>S.stableWin,get:()=>S.stableWin+' s',set:v=>{S.stableWin=clamp(Math.round(v),2,300);dirty();}},
   titrantMeq:{title:'Titrant strength',hint:'meq/L of the titrant: 0.001 N = 1.0 (the usual standard). Gives the result in ueq/L with Sample volume. 0 = unknown',pre:()=>S.titrantMeq.toFixed(2),get:()=>S.titrantMeq>0?S.titrantMeq.toFixed(2)+' meq/L':'not set',set:v=>{S.titrantMeq=clamp(v,0,100);dirty();}},   // 0.9.55
   sampleMl:{title:'Sample volume',hint:'mL of sample in the cell. With Titrant strength set, the result is also given in ueq/L. 0 = unknown',pre:()=>S.sampleMl.toFixed(0),get:()=>S.sampleMl>0?S.sampleMl.toFixed(0)+' mL':'not set',set:v=>{S.sampleMl=clamp(v,0,5000);dirty();}},
   expectUl:{title:'Expected titrant',hint:'uL this sample is expected to need: 75% goes in first, then steps of up to a quarter of it. 0 = unknown',pre:()=>S.expectUl.toFixed(0),get:()=>S.expectUl>0?S.expectUl.toFixed(0)+' uL':'off',set:v=>{S.expectUl=clamp(v,0,10000);dirty();}},
@@ -1684,7 +1694,7 @@ function autoAsk(go){
   const act=S.run&&S.run.active;
   const offerUl = atLastOffer(), offer = S.expectUl<=0 && offerUl>0, scaled = offer && S.sampleMl>0 && S.lastMl>0 && Math.abs(S.sampleMl-S.lastMl)>0.5;   // 0.9.52/0.9.53
   S.useLast=false;
-  confirmBox(act?'Hand this run to Auto?':'Start auto-titration?',atModeName(atMode())+' mode. '+(S.expectUl>0 ? 'Expected titrant '+S.expectUl.toFixed(0)+' uL: the pump doses '+(0.75*S.expectUl).toFixed(0)+' uL to open, then steps of up to '+Math.max(0.25*S.expectUl,2*S.ulDrop).toFixed(0)+' uL, ' : 'The pump doses titrant into the sample: '+S.openDrops+' drops to open, then as needed, ')+S.maxMl.toFixed(1)+' mL at most in all'+(act?' (titrant already added counts)':'')+'.'+(!offer?'':scaled?' Use last: the last result, scaled to this sample volume.':' Use last: the last result is the expected amount for this run.'),go,
+  confirmBox(act?'Hand this run to Auto?':'Start auto-titration?',atModeName(atMode())+' mode'+(S.sampleMl>0?', '+S.sampleMl.toFixed(0)+' mL sample':', sample volume not set')+'. '+(S.expectUl>0 ? 'Expected titrant '+S.expectUl.toFixed(0)+' uL: the pump doses '+(0.75*S.expectUl).toFixed(0)+' uL to open, then steps of up to '+Math.max(0.25*S.expectUl,2*S.ulDrop).toFixed(0)+' uL, ' : 'The pump doses titrant into the sample: '+S.openDrops+' drops to open, then as needed, ')+S.maxMl.toFixed(1)+' mL at most in all'+(act?' (titrant already added counts)':'')+'.'+(!offer?'':scaled?' Use last: the last result, scaled to this sample volume.':' Use last: the last result is the expected amount for this run.'),go,
     offer?'Use '+offerUl.toFixed(0)+' uL':null, offer?()=>{ S.useLast=true; go(); }:null);
 }
 $('bAuto').onclick=()=>autoAsk(()=>{ autoToggle(); renderAll(); });
